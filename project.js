@@ -5,18 +5,21 @@
 
   window.App = App = (function() {
     function App() {
-      this.mouseup_ = __bind(this.mouseup_, this);
-      this.mousemove_ = __bind(this.mousemove_, this);
+      this.mouseup = __bind(this.mouseup, this);
+      this.mousemove = __bind(this.mousemove, this);
+      this.mousedown = __bind(this.mousedown, this);
       this.resize_ = __bind(this.resize_, this);
       var el;
       el = document.getElementById("c");
       this.canvas = new Canvas(el);
       this.model = new Model();
-      this.model.points.push(new Point(0, 0));
       window.addEventListener("resize", this.resize_);
-      document.addEventListener("mousemove", this.mousemove_);
-      document.addEventListener("mouseup", this.mouseup_);
+      document.addEventListener("mousedown", this.mousedown);
+      document.addEventListener("mousemove", this.mousemove);
+      document.addEventListener("mouseup", this.mouseup);
       this.resize_();
+      this.moving_ = null;
+      this.last_ = null;
     }
 
     App.prototype.resize_ = function() {
@@ -24,31 +27,54 @@
       return this.canvas.el.height = document.body.clientHeight;
     };
 
-    App.prototype.mousemove_ = function(e) {
-      var mousePosition, point;
+    App.prototype.mousedown = function(e) {
+      var didFind, found, mousePosition, point;
+      e.preventDefault();
       mousePosition = new Point(e.clientX, e.clientY);
-      point = this.canvas.canvasToWorkspace(mousePosition);
-      _.last(this.model.points).setToPoint(point);
-      this.canvas.clear();
-      return this.model.draw(this.canvas);
-    };
-
-    App.prototype.mouseup_ = function(e) {
-      var mousePosition, point, startPoint;
-      mousePosition = new Point(e.clientX, e.clientY);
-      point = this.canvas.canvasToWorkspace(mousePosition);
-      startPoint = _.last(this.model.points);
-      this.model.points.push(point);
-      return this.model.lines.push({
-        start: {
-          point: startPoint,
-          op: 0
-        },
-        end: {
+      found = this.model.test(this.canvas, mousePosition);
+      didFind = found != null;
+      if (!found) {
+        point = this.canvas.canvasToWorkspace(mousePosition);
+        this.model.points.push(point);
+        found = {
           point: point,
           op: 0
-        }
-      });
+        };
+      }
+      this.moving_ = found;
+      if (this.last_) {
+        this.model.lines.push({
+          start: this.last_,
+          end: this.moving_
+        });
+      }
+      if (didFind) {
+        this.last_ = null;
+      } else {
+        this.last_ = this.moving_;
+      }
+      return this.draw();
+    };
+
+    App.prototype.mousemove = function(e) {
+      var mousePosition, point;
+      if (this.moving_) {
+        mousePosition = new Point(e.clientX, e.clientY);
+        point = this.canvas.canvasToWorkspace(mousePosition);
+        point = this.model.group.invert(point, this.moving_.op);
+        this.moving_.point.setToPoint(point);
+        return this.draw();
+      }
+    };
+
+    App.prototype.mouseup = function(e) {
+      this.moving_ = null;
+      return this.draw();
+    };
+
+    App.prototype.draw = function() {
+      this.canvas.clear();
+      return this.model.draw(this.canvas);
     };
 
     return App;
@@ -189,6 +215,25 @@
       return _results;
     };
 
+    Model.prototype.test = function(canvas, canvasPoint) {
+      var derivedPoint, op, point, _i, _j, _len, _len1, _ref, _ref1;
+      _ref = this.group.ops();
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        op = _ref[_i];
+        _ref1 = this.points;
+        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+          point = _ref1[_j];
+          derivedPoint = this.group.derive(point, op);
+          if (derivedPoint.test(canvas, canvasPoint)) {
+            return {
+              point: point,
+              op: op
+            };
+          }
+        }
+      }
+    };
+
     return Model;
 
   })();
@@ -280,6 +325,37 @@
     return LineRef;
 
   })();
+
+  /*
+  
+  {
+    "id1": {
+      type: "wreath"
+      control: ["id2"]
+      fibers: [
+      ]
+    }
+  }
+  
+  
+  
+  
+  {
+    type: "wreath"
+    control: {
+      type: "group"
+      group: "rotation"
+      n: 12
+    }
+    fibers: [
+      {
+        type: "point"
+  
+      }
+    ]
+  }
+  */
+
 
   Wreath = (function() {
     function Wreath(control, fibers) {

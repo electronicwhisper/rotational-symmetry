@@ -19,3 +19,10 @@ class Model
         end = @group.derive(end, op)
         l = new Line(start, end)
         l.draw(canvas)
+
+  test: (canvas, canvasPoint) ->
+    for op in @group.ops()
+      for point in @points
+        derivedPoint = @group.derive(point, op)
+        if derivedPoint.test(canvas, canvasPoint)
+          return {point, op}

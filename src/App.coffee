@@ -4,12 +4,15 @@ window.App = class App
     @canvas = new Canvas(el)
 
     @model = new Model()
-    @model.points.push(new Point(0, 0))
 
     window.addEventListener("resize", @resize_)
-    document.addEventListener("mousemove", @mousemove_)
-    document.addEventListener("mouseup", @mouseup_)
+    document.addEventListener("mousedown", @mousedown)
+    document.addEventListener("mousemove", @mousemove)
+    document.addEventListener("mouseup", @mouseup)
     @resize_()
+
+    @moving_ = null
+    @last_ = null
 
 
   resize_: =>
@@ -17,25 +20,52 @@ window.App = class App
     @canvas.el.height = document.body.clientHeight
 
 
-  mousemove_: (e) =>
+
+  mousedown: (e) =>
+    e.preventDefault()
     mousePosition = new Point(e.clientX, e.clientY)
+    found = @model.test(@canvas, mousePosition)
 
-    point = @canvas.canvasToWorkspace(mousePosition)
+    didFind = found?
 
-    _.last(@model.points).setToPoint(point)
+    if !found
+      point = @canvas.canvasToWorkspace(mousePosition)
+      @model.points.push(point)
+      found = {point, op: 0}
 
+    @moving_ = found
+    if @last_
+      @model.lines.push({
+        start: @last_
+        end: @moving_
+      })
+
+    if didFind
+      @last_ = null
+    else
+      @last_ = @moving_
+
+    @draw()
+
+
+  mousemove: (e) =>
+    if @moving_
+      mousePosition = new Point(e.clientX, e.clientY)
+
+      point = @canvas.canvasToWorkspace(mousePosition)
+
+      point = @model.group.invert(point, @moving_.op)
+
+      @moving_.point.setToPoint(point)
+
+      @draw()
+
+
+  mouseup: (e) =>
+    @moving_ = null
+    @draw()
+
+
+  draw: ->
     @canvas.clear()
     @model.draw(@canvas)
-
-
-  mouseup_: (e) =>
-    mousePosition = new Point(e.clientX, e.clientY)
-    point = @canvas.canvasToWorkspace(mousePosition)
-
-    startPoint = _.last(@model.points)
-
-    @model.points.push(point)
-    @model.lines.push({
-      start: {point: startPoint, op: 0}
-      end: {point: point, op: 0}
-    })

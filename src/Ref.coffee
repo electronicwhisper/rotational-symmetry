@@ -26,3 +26,38 @@ class LineRef
     start = @start.evaluate()
     end = @end.evaluate()
     return new Line(start, end)
+
+
+
+
+
+###
+
+{
+  "id1": {
+    type: "wreath"
+    control: ["id2"]
+    fibers: [
+    ]
+  }
+}
+
+
+
+
+{
+  type: "wreath"
+  control: {
+    type: "group"
+    group: "rotation"
+    n: 12
+  }
+  fibers: [
+    {
+      type: "point"
+
+    }
+  ]
+}
+
+###
