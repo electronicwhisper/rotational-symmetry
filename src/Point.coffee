@@ -1,7 +1,11 @@
 class Point
+  size: 4
+
   constructor: (@x, @y) ->
 
-  size: 4
+  setToPoint: (point) ->
+    @x = point.x
+    @y = point.y
 
   draw: (canvas) ->
     @path_(canvas)
@@ -19,7 +23,3 @@ class Point
     ctx = canvas.ctx
     ctx.beginPath()
     ctx.arc(canvasPoint.x, canvasPoint.y, @size, 0, Math.PI*2)
-
-
-class DerivedPoint
-  constructor: (@get, @set) ->

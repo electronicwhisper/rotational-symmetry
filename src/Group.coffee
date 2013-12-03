@@ -3,15 +3,13 @@ class Group
 
   derive: (point, op) ->
     angle = 2 * Math.PI * (op / @n)
-    get = =>
-      @rotate_(angle, point)
-    set = (newDerivedPoint) =>
-      @rotate_(-angle, point)
-    return new DerivedPoint(get, set)
+    return @rotate_(point, angle)
 
-  deriveAll: (point) ->
-    return for i in [0...@n]
-      @derive(point, i)
+  invert: (point, op) ->
+    return @derive(point, -op)
+
+  ops: ->
+    return [0...@n]
 
   rotate_: (point, angle) ->
     x = Math.cos(angle) * point.x - Math.sin(angle) * point.y

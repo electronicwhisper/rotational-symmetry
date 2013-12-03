@@ -5,36 +5,17 @@ class Model
     @lines = []
 
   draw: (canvas) ->
-    for point in @points
-      derivedPoints = @group.deriveAll(point)
-      for derivedPoint in derivedPoints
+    for op in @group.ops()
+      for point in @points
+        derivedPoint = @group.derive(point, op)
         derivedPoint.draw(canvas)
 
-
-
-###
-
-Derived point
-  original: Point
-
-  need a way to convert original to derived and back
-
-
-Group
-  Points
-  Lines which reference Points and derived Points
-
-
-
-
-Group
-  points: {Id: Point}
-  lines: [{
-    start: {original: Id, op: Number}
-    end: {original: Id, op: Number}
-  }]
-
-
-
-
-###
+      for line in @lines
+        start = line.start.point
+        start = @group.derive(start, line.start.op)
+        start = @group.derive(start, op)
+        end = line.end.point
+        end = @group.derive(end, line.end.op)
+        end = @group.derive(end, op)
+        l = new Line(start, end)
+        l.draw(canvas)
