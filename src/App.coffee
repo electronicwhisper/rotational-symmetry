@@ -3,19 +3,16 @@ window.App = class App
     el = document.getElementById("c")
     @canvas = new Canvas(el)
 
-    @model = new Model()
+    @model = new Model.Wreath()
 
-    window.addEventListener("resize", @resize_)
+    window.addEventListener("resize", @resize)
     document.addEventListener("mousedown", @mousedown)
     document.addEventListener("mousemove", @mousemove)
     document.addEventListener("mouseup", @mouseup)
-    @resize_()
-
-    @moving_ = null
-    @last_ = null
+    @resize()
 
 
-  resize_: =>
+  resize: =>
     @canvas.el.width = document.body.clientWidth
     @canvas.el.height = document.body.clientHeight
 
@@ -23,49 +20,26 @@ window.App = class App
 
   mousedown: (e) =>
     e.preventDefault()
-    mousePosition = new Point(e.clientX, e.clientY)
-    found = @model.test(@canvas, mousePosition)
+    mousePosition = new Geo.Point(e.clientX, e.clientY)
+    mousePoint = @canvas.canvasToWorkspace(mousePosition)
 
-    didFind = found?
+    point = new Model.Point(mousePoint)
 
-    if !found
-      point = @canvas.canvasToWorkspace(mousePosition)
-      @model.points.push(point)
-      found = {point, op: 0}
-
-    @moving_ = found
-    if @last_
-      @model.lines.push({
-        start: @last_
-        end: @moving_
-      })
-
-    if didFind
-      @last_ = null
-    else
-      @last_ = @moving_
+    @model.fibers.push(point)
 
     @draw()
 
 
   mousemove: (e) =>
-    if @moving_
-      mousePosition = new Point(e.clientX, e.clientY)
-
-      point = @canvas.canvasToWorkspace(mousePosition)
-
-      point = @model.group.invert(point, @moving_.op)
-
-      @moving_.point.setToPoint(point)
-
-      @draw()
 
 
   mouseup: (e) =>
-    @moving_ = null
-    @draw()
 
 
   draw: ->
     @canvas.clear()
-    @model.draw(@canvas)
+
+    addresses = @model.addresses()
+    for address in addresses
+      object = address.evaluate()
+      @canvas.draw(object)

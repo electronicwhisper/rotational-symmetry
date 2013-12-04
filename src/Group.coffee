@@ -1,17 +1,17 @@
 class Group
   constructor: (@n) ->
 
-  derive: (point, op) ->
+  apply: (op, point) ->
     angle = 2 * Math.PI * (op / @n)
-    return @rotate_(point, angle)
+    return @rotate_(angle, point)
 
-  invert: (point, op) ->
-    return @derive(point, -op)
+  invert: (op) ->
+    return -op
 
   ops: ->
     return [0...@n]
 
-  rotate_: (point, angle) ->
+  rotate_: (angle, point) ->
     x = Math.cos(angle) * point.x - Math.sin(angle) * point.y
     y = Math.sin(angle) * point.x + Math.cos(angle) * point.y
-    return new Point(x, y)
+    return new Geo.Point(x, y)

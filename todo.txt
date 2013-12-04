@@ -1,0 +1,7 @@
+Merge points together
+
+Basic tools
+  select - move points
+  line - click around
+    if click on point, go with that point
+    if click on space, make a new point at that space

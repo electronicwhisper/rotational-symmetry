@@ -1,28 +1,69 @@
-class Model
+Model = {}
+
+
+class Model.Point
+  constructor: (@point) ->
+
+
+class Model.Line
+  constructor: (@start, @end) ->
+
+
+class Model.Wreath
   constructor: ->
-    @group = new Group(12)
-    @points = []
-    @lines = []
+    @control = new Group(12)
+    @fibers = []
 
-  draw: (canvas) ->
-    for op in @group.ops()
-      for point in @points
-        derivedPoint = @group.derive(point, op)
-        derivedPoint.draw(canvas)
+  addresses: ->
+    result = []
+    for op in @control.ops()
+      for fiber in @fibers
+        if fiber instanceof Model.Wreath
+          "TODO"
+        else
+          result.push(new Model.Address(fiber, [{wreath: this, op: op}]))
+    return result
 
-      for line in @lines
-        start = line.start.point
-        start = @group.derive(start, line.start.op)
-        start = @group.derive(start, op)
-        end = line.end.point
-        end = @group.derive(end, line.end.op)
-        end = @group.derive(end, op)
-        l = new Line(start, end)
-        l.draw(canvas)
 
-  test: (canvas, canvasPoint) ->
-    for op in @group.ops()
-      for point in @points
-        derivedPoint = @group.derive(point, op)
-        if derivedPoint.test(canvas, canvasPoint)
-          return {point, op}
+class Model.Address
+  constructor: (@object, @path=[]) ->
+
+  evaluate: ->
+    if @object instanceof Model.Point
+      point = @object.point
+      for step in @path
+        point = step.wreath.control.apply(step.op, point)
+      return point
+    else if @object instanceof Model.Line
+      start = @object.start.evaluate()
+      end = @object.end.evaluate()
+      return new Geo.Line(start, end)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
