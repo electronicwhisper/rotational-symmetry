@@ -3,7 +3,7 @@ window.App = class App
     el = document.getElementById("c")
     @canvas = new Canvas(el)
 
-    @model = new Model.Wreath()
+    @model = @setupModel()
 
     window.addEventListener("resize", @resize)
     document.addEventListener("mousedown", @mousedown)
@@ -15,6 +15,14 @@ window.App = class App
   resize: =>
     @canvas.el.width = document.body.clientWidth
     @canvas.el.height = document.body.clientHeight
+    @draw()
+
+
+  setupModel: ->
+    center = new Model.Point(new Geo.Point(100, 0))
+    centerAddress = new Model.Address(new Model.Path(), center)
+    model = new Model.RotationWreath(centerAddress, 9)
+    return model
 
 
 
@@ -25,7 +33,8 @@ window.App = class App
 
     point = new Model.Point(mousePoint)
 
-    @model.fibers.push(point)
+    @model.objects.push(point)
+    console.log @model
 
     @draw()
 
@@ -38,6 +47,7 @@ window.App = class App
 
   draw: ->
     @canvas.clear()
+    @canvas.drawAxes()
 
     addresses = @model.addresses()
     for address in addresses
