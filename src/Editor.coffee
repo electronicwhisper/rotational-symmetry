@@ -1,6 +1,8 @@
 class Editor
   constructor: ->
     @tool = "select"
+    @context = null
+    @moving = null
 
     @setupModel()
     @setupPalette()
@@ -12,9 +14,10 @@ class Editor
   # ===========================================================================
 
   setupModel: ->
-    center = new Model.Point(new Geo.Point(100, 0))
+    center = new Model.Point(new Geo.Point(0, 0))
     centerAddress = new Model.Address(new Model.Path(), center)
     @model = new Model.RotationWreath(centerAddress, 9)
+    @context = @model
 
 
   # ===========================================================================
@@ -71,6 +74,8 @@ class Editor
     window.addEventListener("resize", @resize)
     @resize()
 
+    canvasEl.addEventListener("pointerenter", @canvasPointerEnter)
+    canvasEl.addEventListener("pointerleave", @canvasPointerLeave)
     canvasEl.addEventListener("pointerdown", @canvasPointerDown)
     canvasEl.addEventListener("pointermove", @canvasPointerMove)
     canvasEl.addEventListener("pointerup", @canvasPointerUp)
@@ -79,12 +84,34 @@ class Editor
     @canvas.setupSize()
     @draw()
 
+  canvasPointerEnter: (e) =>
+    if @tool == "point"
+      if !@moving
+        @moving = new Model.Point(new Geo.Point(0, 0))
+        @context.objects.push(@moving)
+    @draw()
+
+  canvasPointerLeave: (e) =>
+    if @tool == "point"
+      if @moving
+        @context.objects = _.without(@context.objects, @moving)
+        @moving = null
+    @draw()
+
   canvasPointerDown: (e) =>
 
   canvasPointerMove: (e) =>
+    if @tool == "point"
+      if @moving
+        pointerPosition = new Geo.Point(e.clientX, e.clientY)
+        workspacePosition = @canvas.browserToWorkspace(pointerPosition)
+        @moving.point = workspacePosition
+    @draw()
 
   canvasPointerUp: (e) =>
-
+    if @tool == "point"
+      @moving = null
+    @draw()
 
   draw: ->
     @canvas.clear()
