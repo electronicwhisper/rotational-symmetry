@@ -60,7 +60,7 @@ class Canvas
   drawPoint: (point) ->
     point = @workspaceToCanvas(point)
     @ctx.beginPath()
-    @ctx.arc(point.x, point.y, 4, 0, Math.PI*2)
+    @ctx.arc(point.x, point.y, 3.5, 0, Math.PI*2)
     @ctx.fillStyle = "#000"
     @ctx.fill()
 

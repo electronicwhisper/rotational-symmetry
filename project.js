@@ -147,7 +147,7 @@
     Canvas.prototype.drawPoint = function(point) {
       point = this.workspaceToCanvas(point);
       this.ctx.beginPath();
-      this.ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
+      this.ctx.arc(point.x, point.y, 3.5, 0, Math.PI * 2);
       this.ctx.fillStyle = "#000";
       return this.ctx.fill();
     };
@@ -170,10 +170,23 @@
 
   Editor = (function() {
     function Editor() {
+      this.canvasPointerUp = __bind(this.canvasPointerUp, this);
+      this.canvasPointerMove = __bind(this.canvasPointerMove, this);
+      this.canvasPointerDown = __bind(this.canvasPointerDown, this);
+      this.resize = __bind(this.resize, this);
       this.palettePointerDown = __bind(this.palettePointerDown, this);
-      this.mode = "select";
+      this.tool = "select";
+      this.setupModel();
       this.setupPalette();
+      this.setupCanvas();
     }
+
+    Editor.prototype.setupModel = function() {
+      var center, centerAddress;
+      center = new Model.Point(new Geo.Point(100, 0));
+      centerAddress = new Model.Address(new Model.Path(), center);
+      return this.model = new Model.RotationWreath(centerAddress, 9);
+    };
 
     Editor.prototype.setupPalette = function() {
       var canvasEl, palette, tool, toolEl, _i, _len, _ref;
@@ -217,7 +230,7 @@
 
     Editor.prototype.selectTool = function(tool) {
       var palette, toolEl, _i, _len, _ref;
-      this.mode = tool;
+      this.tool = tool;
       palette = document.querySelector("#palette");
       _ref = palette.querySelectorAll(".palette-tool");
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -226,6 +239,42 @@
       }
       toolEl = palette.querySelector(".palette-tool[data-tool='" + tool + "']");
       return toolEl.setAttribute("data-selected", "");
+    };
+
+    Editor.prototype.setupCanvas = function() {
+      var canvasEl;
+      canvasEl = document.getElementById("c");
+      this.canvas = new Canvas(canvasEl);
+      window.addEventListener("resize", this.resize);
+      this.resize();
+      canvasEl.addEventListener("pointerdown", this.canvasPointerDown);
+      canvasEl.addEventListener("pointermove", this.canvasPointerMove);
+      return canvasEl.addEventListener("pointerup", this.canvasPointerUp);
+    };
+
+    Editor.prototype.resize = function() {
+      this.canvas.setupSize();
+      return this.draw();
+    };
+
+    Editor.prototype.canvasPointerDown = function(e) {};
+
+    Editor.prototype.canvasPointerMove = function(e) {};
+
+    Editor.prototype.canvasPointerUp = function(e) {};
+
+    Editor.prototype.draw = function() {
+      var address, addresses, object, _i, _len, _results;
+      this.canvas.clear();
+      this.canvas.drawAxes();
+      addresses = this.model.addresses();
+      _results = [];
+      for (_i = 0, _len = addresses.length; _i < _len; _i++) {
+        address = addresses[_i];
+        object = address.evaluate();
+        _results.push(this.canvas.draw(object));
+      }
+      return _results;
     };
 
     return Editor;
