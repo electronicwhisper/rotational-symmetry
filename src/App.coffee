@@ -1,5 +1,7 @@
 window.App = class App
   constructor: ->
+    new Editor()
+
     el = document.getElementById("c")
     @canvas = new Canvas(el)
 
@@ -13,8 +15,7 @@ window.App = class App
 
 
   resize: =>
-    @canvas.el.width = document.body.clientWidth
-    @canvas.el.height = document.body.clientHeight
+    @canvas.setupSize()
     @draw()
 
 
@@ -29,7 +30,7 @@ window.App = class App
   mousedown: (e) =>
     e.preventDefault()
     mousePosition = new Geo.Point(e.clientX, e.clientY)
-    mousePoint = @canvas.canvasToWorkspace(mousePosition)
+    mousePoint = @canvas.browserToWorkspace(mousePosition)
 
     point = new Model.Point(mousePoint)
 

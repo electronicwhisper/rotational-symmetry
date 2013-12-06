@@ -1,9 +1,25 @@
 class Canvas
   constructor: (@el) ->
     @ctx = @el.getContext("2d")
+    @setupSize()
 
   width: -> @el.width
   height: -> @el.height
+
+  setupSize: ->
+    rect = @el.getBoundingClientRect()
+    @el.width = rect.width
+    @el.height = rect.height
+
+  browserToCanvas: (browserPoint) ->
+    rect = @el.getBoundingClientRect()
+    x = browserPoint.x - rect.left
+    y = browserPoint.y - rect.top
+    return canvasPoint = new Geo.Point(x, y)
+
+  browserToWorkspace: (browserPoint) ->
+    canvasPoint = @browserToCanvas(browserPoint)
+    return workspacePoint = @canvasToWorkspace(canvasPoint)
 
   canvasToWorkspace: (canvasPoint) ->
     x = canvasPoint.x - @width() / 2
