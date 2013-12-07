@@ -22,18 +22,23 @@
     }
 
     Canvas.prototype.width = function() {
-      return this.el.width;
+      return this.el.width / this.ratio;
     };
 
     Canvas.prototype.height = function() {
-      return this.el.height;
+      return this.el.height / this.ratio;
     };
 
     Canvas.prototype.setupSize = function() {
-      var rect;
+      var backingStoreRatio, devicePixelRatio, rect;
+      devicePixelRatio = window.devicePixelRatio || 1;
+      backingStoreRatio = this.ctx.webkitBackingStorePixelRatio || this.ctx.mozBackingStorePixelRatio || this.ctx.msBackingStorePixelRatio || this.ctx.oBackingStorePixelRatio || this.ctx.backingStorePixelRatio || 1;
+      this.ratio = devicePixelRatio / backingStoreRatio;
       rect = this.el.getBoundingClientRect();
-      this.el.width = rect.width;
-      return this.el.height = rect.height;
+      this.el.width = rect.width * this.ratio;
+      this.el.height = rect.height * this.ratio;
+      this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      return this.ctx.scale(this.ratio, this.ratio);
     };
 
     Canvas.prototype.browserToCanvas = function(browserPoint) {
@@ -219,7 +224,8 @@
       canvasEl.addEventListener("pointerdown", this.canvasPointerDown);
       canvasEl.addEventListener("pointermove", this.canvasPointerMove);
       canvasEl.addEventListener("pointerup", this.canvasPointerUp);
-      return canvasEl.addEventListener("pointerleave", this.canvasPointerLeave);
+      canvasEl.addEventListener("pointerleave", this.canvasPointerLeave);
+      return canvasEl.addEventListener("pointercancel", this.canvasPointerLeave);
     };
 
     Editor.prototype.resize = function() {
@@ -367,15 +373,54 @@
   Editor.LineSegment = (function() {
     function LineSegment(editor) {
       this.editor = editor;
+      this.lastPoint = null;
+      this.provisionalPoint = null;
+      this.provisionalLine = null;
     }
 
     LineSegment.prototype.pointerDown = function(e) {};
 
-    LineSegment.prototype.pointerMove = function(e) {};
+    LineSegment.prototype.pointerMove = function(e) {
+      var end, path, start, workspacePosition;
+      if (!this.provisionalPoint) {
+        this.provisionalPoint = new Model.Point(new Geo.Point(0, 0));
+        this.editor.contextWreath.objects.push(this.provisionalPoint);
+        if (this.lastPoint) {
+          path = new Model.Path([
+            {
+              wreath: this.editor.contextWreath,
+              op: 0
+            }
+          ]);
+          start = new Model.Address(path, this.lastPoint);
+          end = new Model.Address(path, this.provisionalPoint);
+          this.provisionalLine = new Model.Line(start, end);
+          this.editor.contextWreath.objects.push(this.provisionalLine);
+        }
+      }
+      workspacePosition = this.editor.workspacePosition(e);
+      return this.provisionalPoint.point = workspacePosition;
+    };
 
-    LineSegment.prototype.pointerUp = function(e) {};
+    LineSegment.prototype.pointerUp = function(e) {
+      if (!this.provisionalPoint) {
+        return;
+      }
+      this.lastPoint = this.provisionalPoint;
+      this.provisionalPoint = null;
+      return this.provisionalLine = null;
+    };
 
-    LineSegment.prototype.pointerLeave = function(e) {};
+    LineSegment.prototype.pointerLeave = function(e) {
+      var contextWreath;
+      if (!this.provisionalPoint) {
+        return;
+      }
+      contextWreath = this.editor.contextWreath;
+      contextWreath.objects = _.without(contextWreath.objects, this.provisionalPoint, this.provisionalLine);
+      this.provisionalPoint = null;
+      return this.provisionalLine = null;
+    };
 
     return LineSegment;
 
@@ -643,8 +688,8 @@
         point = this.object.point;
         return this.path.localToGlobal(point);
       } else if (this.object instanceof Model.Line) {
-        start = this.object.start.evaluate();
-        end = this.object.end.evaluate();
+        start = this.path.localToGlobal(this.object.start.evaluate());
+        end = this.path.localToGlobal(this.object.end.evaluate());
         return new Geo.Line(start, end);
       }
     };

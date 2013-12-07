@@ -96,8 +96,8 @@ class Model.Address
       point = @object.point
       return @path.localToGlobal(point)
     else if @object instanceof Model.Line
-      start = @object.start.evaluate()
-      end = @object.end.evaluate()
+      start = @path.localToGlobal(@object.start.evaluate())
+      end = @path.localToGlobal(@object.end.evaluate())
       return new Geo.Line(start, end)
 
 

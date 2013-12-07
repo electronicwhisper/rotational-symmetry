@@ -77,6 +77,7 @@ class Editor
     canvasEl.addEventListener("pointermove", @canvasPointerMove)
     canvasEl.addEventListener("pointerup", @canvasPointerUp)
     canvasEl.addEventListener("pointerleave", @canvasPointerLeave)
+    canvasEl.addEventListener("pointercancel", @canvasPointerLeave)
 
   resize: =>
     @canvas.setupSize()
@@ -183,12 +184,38 @@ class Editor.Point
 
 class Editor.LineSegment
   constructor: (@editor) ->
+    @lastPoint = null
+    @provisionalPoint = null
+    @provisionalLine = null
 
   pointerDown: (e) ->
   pointerMove: (e) ->
-  pointerUp: (e) ->
-  pointerLeave: (e) ->
+    if !@provisionalPoint
+      @provisionalPoint = new Model.Point(new Geo.Point(0, 0))
+      @editor.contextWreath.objects.push(@provisionalPoint)
+      if @lastPoint
+        # TODO
+        path = new Model.Path([wreath: @editor.contextWreath, op: 0])
+        start = new Model.Address(path, @lastPoint)
+        end = new Model.Address(path, @provisionalPoint)
+        @provisionalLine = new Model.Line(start, end)
+        @editor.contextWreath.objects.push(@provisionalLine)
 
+    workspacePosition = @editor.workspacePosition(e)
+    @provisionalPoint.point = workspacePosition
+
+  pointerUp: (e) ->
+    return unless @provisionalPoint
+    @lastPoint = @provisionalPoint
+    @provisionalPoint = null
+    @provisionalLine = null
+
+  pointerLeave: (e) ->
+    return unless @provisionalPoint
+    contextWreath = @editor.contextWreath
+    contextWreath.objects = _.without(contextWreath.objects, @provisionalPoint, @provisionalLine)
+    @provisionalPoint = null
+    @provisionalLine = null
 
 ###
 

@@ -3,13 +3,24 @@ class Canvas
     @ctx = @el.getContext("2d")
     @setupSize()
 
-  width: -> @el.width
-  height: -> @el.height
+  width: -> @el.width / @ratio
+  height: -> @el.height / @ratio
 
   setupSize: ->
+    # Baloney via http://www.html5rocks.com/en/tutorials/canvas/hidpi/
+    devicePixelRatio = window.devicePixelRatio || 1
+    backingStoreRatio = @ctx.webkitBackingStorePixelRatio ||
+                        @ctx.mozBackingStorePixelRatio ||
+                        @ctx.msBackingStorePixelRatio ||
+                        @ctx.oBackingStorePixelRatio ||
+                        @ctx.backingStorePixelRatio || 1
+    @ratio = devicePixelRatio / backingStoreRatio
+
     rect = @el.getBoundingClientRect()
-    @el.width = rect.width
-    @el.height = rect.height
+    @el.width = rect.width * @ratio
+    @el.height = rect.height * @ratio
+    @ctx.setTransform(1, 0, 0, 1, 0, 0)
+    @ctx.scale(@ratio, @ratio)
 
   browserToCanvas: (browserPoint) ->
     rect = @el.getBoundingClientRect()
