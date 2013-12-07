@@ -173,7 +173,6 @@ class Editor.Point
   pointerUp: (e) ->
     return unless @provisionalPoint
     @provisionalPoint = null
-    @pointerMove(e)
 
   pointerLeave: (e) ->
     return unless @provisionalPoint

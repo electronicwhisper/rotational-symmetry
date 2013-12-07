@@ -352,8 +352,7 @@
       if (!this.provisionalPoint) {
         return;
       }
-      this.provisionalPoint = null;
-      return this.pointerMove(e);
+      return this.provisionalPoint = null;
     };
 
     Point.prototype.pointerLeave = function(e) {
