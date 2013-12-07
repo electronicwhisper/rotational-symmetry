@@ -10,7 +10,7 @@ Element::closest = (selector) ->
     return this
   else
     parent = @parentNode
-    if parent?
+    if parent? && parent.nodeType == Node.ELEMENT_NODE
       return parent.closest(fn)
     else
       return undefined

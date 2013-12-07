@@ -1,8 +1,7 @@
 class Editor
   constructor: ->
-    @tool = "select"
-    @context = null
-    @moving = null
+    @tool = new Editor.Select(this)
+    @contextWreath = null
 
     @setupModel()
     @setupPalette()
@@ -17,7 +16,7 @@ class Editor
     center = new Model.Point(new Geo.Point(0, 0))
     centerAddress = new Model.Address(new Model.Path(), center)
     @model = new Model.RotationWreath(centerAddress, 9)
-    @context = @model
+    @contextWreath = @model
 
 
   # ===========================================================================
@@ -27,39 +26,39 @@ class Editor
   setupPalette: ->
     palette = document.querySelector("#palette")
     for toolEl in palette.querySelectorAll(".palette-tool")
-      tool = toolEl.getAttribute("data-tool")
+      toolName = toolEl.getAttribute("data-tool")
       canvasEl = toolEl.querySelector("canvas")
-      @drawPaletteTool(tool, canvasEl)
+      @drawPaletteTool(toolName, canvasEl)
 
     palette.addEventListener("pointerdown", @palettePointerDown)
 
-  drawPaletteTool: (tool, canvasEl) ->
+  drawPaletteTool: (toolName, canvasEl) ->
     canvas = new Canvas(canvasEl)
-    if tool == "select"
+    if toolName == "Select"
 
-    else if tool == "point"
-      canvas.draw(new Geo.Point(0, 0))
+    else if toolName == "Point"
+      canvas.drawPoint(new Geo.Point(0, 0))
 
-    else if tool == "lineSegment"
+    else if toolName == "LineSegment"
       p1 = new Geo.Point(-10, -10)
       p2 = new Geo.Point(10, 10)
       l = new Geo.Line(p1, p2)
-      canvas.draw(p1)
-      canvas.draw(p2)
-      canvas.draw(l)
+      canvas.drawPoint(p1)
+      canvas.drawPoint(p2)
+      canvas.drawLine(l)
 
   palettePointerDown: (e) =>
     toolEl = e.target.closest(".palette-tool")
     return unless toolEl?
-    tool = toolEl.getAttribute("data-tool")
-    @selectTool(tool)
+    toolName = toolEl.getAttribute("data-tool")
+    @selectTool(toolName)
 
-  selectTool: (tool) ->
-    @tool = tool
+  selectTool: (toolName) ->
+    @tool = new Editor[toolName](this)
     palette = document.querySelector("#palette")
     for toolEl in palette.querySelectorAll(".palette-tool")
       toolEl.removeAttribute("data-selected")
-    toolEl = palette.querySelector(".palette-tool[data-tool='#{tool}']")
+    toolEl = palette.querySelector(".palette-tool[data-tool='#{toolName}']")
     toolEl.setAttribute("data-selected", "")
 
 
@@ -74,44 +73,38 @@ class Editor
     window.addEventListener("resize", @resize)
     @resize()
 
-    canvasEl.addEventListener("pointerenter", @canvasPointerEnter)
-    canvasEl.addEventListener("pointerleave", @canvasPointerLeave)
     canvasEl.addEventListener("pointerdown", @canvasPointerDown)
     canvasEl.addEventListener("pointermove", @canvasPointerMove)
     canvasEl.addEventListener("pointerup", @canvasPointerUp)
+    canvasEl.addEventListener("pointerleave", @canvasPointerLeave)
 
   resize: =>
     @canvas.setupSize()
     @draw()
 
-  canvasPointerEnter: (e) =>
-    if @tool == "point"
-      if !@moving
-        @moving = new Model.Point(new Geo.Point(0, 0))
-        @context.objects.push(@moving)
-    @draw()
+  workspacePosition: (e) ->
+    pointerPosition = new Geo.Point(e.clientX, e.clientY)
+    return workspacePosition = @canvas.browserToWorkspace(pointerPosition)
 
-  canvasPointerLeave: (e) =>
-    if @tool == "point"
-      if @moving
-        @context.objects = _.without(@context.objects, @moving)
-        @moving = null
-    @draw()
+
+
 
   canvasPointerDown: (e) =>
+    @tool.pointerDown(e)
+    @draw()
 
   canvasPointerMove: (e) =>
-    if @tool == "point"
-      if @moving
-        pointerPosition = new Geo.Point(e.clientX, e.clientY)
-        workspacePosition = @canvas.browserToWorkspace(pointerPosition)
-        @moving.point = workspacePosition
+    @tool.pointerMove(e)
     @draw()
 
   canvasPointerUp: (e) =>
-    if @tool == "point"
-      @moving = null
+    @tool.pointerUp(e)
     @draw()
+
+  canvasPointerLeave: (e) =>
+    @tool.pointerLeave(e)
+    @draw()
+
 
   draw: ->
     @canvas.clear()
@@ -120,4 +113,110 @@ class Editor
     addresses = @model.addresses()
     for address in addresses
       object = address.evaluate()
-      @canvas.draw(object)
+      @canvas.drawObject(object)
+
+
+  addressesNearPointer: (e) ->
+    pointerPosition = new Geo.Point(e.clientX, e.clientY)
+    canvasPosition = @canvas.browserToCanvas(pointerPosition)
+
+    result = []
+    addresses = @model.addresses()
+    for address in addresses
+      object = address.evaluate()
+      isNear = @canvas.isObjectNearPoint(object, canvasPosition)
+      if isNear
+        result.push(address)
+    return result
+
+
+
+class Editor.Select
+  constructor: (@editor) ->
+    @selectedAddress = null
+
+  pointerDown: (e) ->
+    found = @editor.addressesNearPointer(e)
+    if found.length > 0
+      @selectedAddress = found[0]
+    else
+      @selectedAddress = null
+
+  pointerMove: (e) ->
+    return unless @selectedAddress
+    workspacePosition = @editor.workspacePosition(e)
+    localPoint = @selectedAddress.path.globalToLocal(workspacePosition)
+    @selectedAddress.object.point = localPoint
+
+  pointerUp: (e) ->
+    @selectedAddress = null
+
+  pointerLeave: (e) ->
+
+
+
+class Editor.Point
+  constructor: (@editor) ->
+    @provisionalPoint = null
+
+  pointerDown: (e) ->
+
+  pointerMove: (e) ->
+    if !@provisionalPoint
+      @provisionalPoint = new Model.Point(new Geo.Point(0, 0))
+      @editor.contextWreath.objects.push(@provisionalPoint)
+
+    workspacePosition = @editor.workspacePosition(e)
+    @provisionalPoint.point = workspacePosition
+
+  pointerUp: (e) ->
+    return unless @provisionalPoint
+    @provisionalPoint = null
+    @pointerMove(e)
+
+  pointerLeave: (e) ->
+    return unless @provisionalPoint
+    contextWreath = @editor.contextWreath
+    contextWreath.objects = _.without(contextWreath.objects, @provisionalPoint)
+    @provisionalPoint = null
+
+
+class Editor.LineSegment
+  constructor: (@editor) ->
+
+  pointerDown: (e) ->
+  pointerMove: (e) ->
+  pointerUp: (e) ->
+  pointerLeave: (e) ->
+
+
+###
+
+Concepts:
+
+  Moving - point to move with pointermove events
+
+  Provisional - geometries which would be deleted on pointerleave
+
+
+makeProvisional
+
+removeProvisional
+
+moveMoving
+
+
+
+Point
+  make a point
+  *DONE
+
+Line
+  make a point
+  make a point, make a line from current point to previous point
+
+
+
+
+
+###

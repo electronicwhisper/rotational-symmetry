@@ -81,7 +81,7 @@
       return this.ctx.stroke();
     };
 
-    Canvas.prototype.draw = function(object) {
+    Canvas.prototype.drawObject = function(object) {
       if (object instanceof Geo.Point) {
         return this.drawPoint(object);
       } else if (object instanceof Geo.Line) {
@@ -109,22 +109,41 @@
       return this.ctx.stroke();
     };
 
+    Canvas.prototype.isObjectNearPoint = function(object, canvasPoint) {
+      if (object instanceof Geo.Point) {
+        return this.isPointNearPoint(object, canvasPoint);
+      } else if (object instanceof Geo.Line) {
+        return this.isLineNearPoint(object, canvasPoint);
+      }
+    };
+
+    Canvas.prototype.isPointNearPoint = function(point, canvasPoint) {
+      var distanceSquared, dx, dy;
+      point = this.workspaceToCanvas(point);
+      dx = point.x - canvasPoint.x;
+      dy = point.y - canvasPoint.y;
+      distanceSquared = (dx * dx) + (dy * dy);
+      return distanceSquared < 10 * 10;
+    };
+
+    Canvas.prototype.isLineNearPoint = function(line, canvasPoint) {
+      return false;
+    };
+
     return Canvas;
 
   })();
 
   Editor = (function() {
     function Editor() {
+      this.canvasPointerLeave = __bind(this.canvasPointerLeave, this);
       this.canvasPointerUp = __bind(this.canvasPointerUp, this);
       this.canvasPointerMove = __bind(this.canvasPointerMove, this);
       this.canvasPointerDown = __bind(this.canvasPointerDown, this);
-      this.canvasPointerLeave = __bind(this.canvasPointerLeave, this);
-      this.canvasPointerEnter = __bind(this.canvasPointerEnter, this);
       this.resize = __bind(this.resize, this);
       this.palettePointerDown = __bind(this.palettePointerDown, this);
-      this.tool = "select";
-      this.context = null;
-      this.moving = null;
+      this.tool = new Editor.Select(this);
+      this.contextWreath = null;
       this.setupModel();
       this.setupPalette();
       this.setupCanvas();
@@ -135,59 +154,59 @@
       center = new Model.Point(new Geo.Point(0, 0));
       centerAddress = new Model.Address(new Model.Path(), center);
       this.model = new Model.RotationWreath(centerAddress, 9);
-      return this.context = this.model;
+      return this.contextWreath = this.model;
     };
 
     Editor.prototype.setupPalette = function() {
-      var canvasEl, palette, tool, toolEl, _i, _len, _ref;
+      var canvasEl, palette, toolEl, toolName, _i, _len, _ref;
       palette = document.querySelector("#palette");
       _ref = palette.querySelectorAll(".palette-tool");
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         toolEl = _ref[_i];
-        tool = toolEl.getAttribute("data-tool");
+        toolName = toolEl.getAttribute("data-tool");
         canvasEl = toolEl.querySelector("canvas");
-        this.drawPaletteTool(tool, canvasEl);
+        this.drawPaletteTool(toolName, canvasEl);
       }
       return palette.addEventListener("pointerdown", this.palettePointerDown);
     };
 
-    Editor.prototype.drawPaletteTool = function(tool, canvasEl) {
+    Editor.prototype.drawPaletteTool = function(toolName, canvasEl) {
       var canvas, l, p1, p2;
       canvas = new Canvas(canvasEl);
-      if (tool === "select") {
+      if (toolName === "Select") {
 
-      } else if (tool === "point") {
-        return canvas.draw(new Geo.Point(0, 0));
-      } else if (tool === "lineSegment") {
+      } else if (toolName === "Point") {
+        return canvas.drawPoint(new Geo.Point(0, 0));
+      } else if (toolName === "LineSegment") {
         p1 = new Geo.Point(-10, -10);
         p2 = new Geo.Point(10, 10);
         l = new Geo.Line(p1, p2);
-        canvas.draw(p1);
-        canvas.draw(p2);
-        return canvas.draw(l);
+        canvas.drawPoint(p1);
+        canvas.drawPoint(p2);
+        return canvas.drawLine(l);
       }
     };
 
     Editor.prototype.palettePointerDown = function(e) {
-      var tool, toolEl;
+      var toolEl, toolName;
       toolEl = e.target.closest(".palette-tool");
       if (toolEl == null) {
         return;
       }
-      tool = toolEl.getAttribute("data-tool");
-      return this.selectTool(tool);
+      toolName = toolEl.getAttribute("data-tool");
+      return this.selectTool(toolName);
     };
 
-    Editor.prototype.selectTool = function(tool) {
+    Editor.prototype.selectTool = function(toolName) {
       var palette, toolEl, _i, _len, _ref;
-      this.tool = tool;
+      this.tool = new Editor[toolName](this);
       palette = document.querySelector("#palette");
       _ref = palette.querySelectorAll(".palette-tool");
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         toolEl = _ref[_i];
         toolEl.removeAttribute("data-selected");
       }
-      toolEl = palette.querySelector(".palette-tool[data-tool='" + tool + "']");
+      toolEl = palette.querySelector(".palette-tool[data-tool='" + toolName + "']");
       return toolEl.setAttribute("data-selected", "");
     };
 
@@ -197,11 +216,10 @@
       this.canvas = new Canvas(canvasEl);
       window.addEventListener("resize", this.resize);
       this.resize();
-      canvasEl.addEventListener("pointerenter", this.canvasPointerEnter);
-      canvasEl.addEventListener("pointerleave", this.canvasPointerLeave);
       canvasEl.addEventListener("pointerdown", this.canvasPointerDown);
       canvasEl.addEventListener("pointermove", this.canvasPointerMove);
-      return canvasEl.addEventListener("pointerup", this.canvasPointerUp);
+      canvasEl.addEventListener("pointerup", this.canvasPointerUp);
+      return canvasEl.addEventListener("pointerleave", this.canvasPointerLeave);
     };
 
     Editor.prototype.resize = function() {
@@ -209,44 +227,29 @@
       return this.draw();
     };
 
-    Editor.prototype.canvasPointerEnter = function(e) {
-      if (this.tool === "point") {
-        if (!this.moving) {
-          this.moving = new Model.Point(new Geo.Point(0, 0));
-          this.context.objects.push(this.moving);
-        }
-      }
-      return this.draw();
+    Editor.prototype.workspacePosition = function(e) {
+      var pointerPosition, workspacePosition;
+      pointerPosition = new Geo.Point(e.clientX, e.clientY);
+      return workspacePosition = this.canvas.browserToWorkspace(pointerPosition);
     };
 
-    Editor.prototype.canvasPointerLeave = function(e) {
-      if (this.tool === "point") {
-        if (this.moving) {
-          this.context.objects = _.without(this.context.objects, this.moving);
-          this.moving = null;
-        }
-      }
+    Editor.prototype.canvasPointerDown = function(e) {
+      this.tool.pointerDown(e);
       return this.draw();
     };
-
-    Editor.prototype.canvasPointerDown = function(e) {};
 
     Editor.prototype.canvasPointerMove = function(e) {
-      var pointerPosition, workspacePosition;
-      if (this.tool === "point") {
-        if (this.moving) {
-          pointerPosition = new Geo.Point(e.clientX, e.clientY);
-          workspacePosition = this.canvas.browserToWorkspace(pointerPosition);
-          this.moving.point = workspacePosition;
-        }
-      }
+      this.tool.pointerMove(e);
       return this.draw();
     };
 
     Editor.prototype.canvasPointerUp = function(e) {
-      if (this.tool === "point") {
-        this.moving = null;
-      }
+      this.tool.pointerUp(e);
+      return this.draw();
+    };
+
+    Editor.prototype.canvasPointerLeave = function(e) {
+      this.tool.pointerLeave(e);
       return this.draw();
     };
 
@@ -259,14 +262,151 @@
       for (_i = 0, _len = addresses.length; _i < _len; _i++) {
         address = addresses[_i];
         object = address.evaluate();
-        _results.push(this.canvas.draw(object));
+        _results.push(this.canvas.drawObject(object));
       }
       return _results;
+    };
+
+    Editor.prototype.addressesNearPointer = function(e) {
+      var address, addresses, canvasPosition, isNear, object, pointerPosition, result, _i, _len;
+      pointerPosition = new Geo.Point(e.clientX, e.clientY);
+      canvasPosition = this.canvas.browserToCanvas(pointerPosition);
+      result = [];
+      addresses = this.model.addresses();
+      for (_i = 0, _len = addresses.length; _i < _len; _i++) {
+        address = addresses[_i];
+        object = address.evaluate();
+        isNear = this.canvas.isObjectNearPoint(object, canvasPosition);
+        if (isNear) {
+          result.push(address);
+        }
+      }
+      return result;
     };
 
     return Editor;
 
   })();
+
+  Editor.Select = (function() {
+    function Select(editor) {
+      this.editor = editor;
+      this.selectedAddress = null;
+    }
+
+    Select.prototype.pointerDown = function(e) {
+      var found;
+      found = this.editor.addressesNearPointer(e);
+      if (found.length > 0) {
+        return this.selectedAddress = found[0];
+      } else {
+        return this.selectedAddress = null;
+      }
+    };
+
+    Select.prototype.pointerMove = function(e) {
+      var localPoint, workspacePosition;
+      if (!this.selectedAddress) {
+        return;
+      }
+      workspacePosition = this.editor.workspacePosition(e);
+      localPoint = this.selectedAddress.path.globalToLocal(workspacePosition);
+      return this.selectedAddress.object.point = localPoint;
+    };
+
+    Select.prototype.pointerUp = function(e) {
+      return this.selectedAddress = null;
+    };
+
+    Select.prototype.pointerLeave = function(e) {};
+
+    return Select;
+
+  })();
+
+  Editor.Point = (function() {
+    function Point(editor) {
+      this.editor = editor;
+      this.provisionalPoint = null;
+    }
+
+    Point.prototype.pointerDown = function(e) {};
+
+    Point.prototype.pointerMove = function(e) {
+      var workspacePosition;
+      if (!this.provisionalPoint) {
+        this.provisionalPoint = new Model.Point(new Geo.Point(0, 0));
+        this.editor.contextWreath.objects.push(this.provisionalPoint);
+      }
+      workspacePosition = this.editor.workspacePosition(e);
+      return this.provisionalPoint.point = workspacePosition;
+    };
+
+    Point.prototype.pointerUp = function(e) {
+      if (!this.provisionalPoint) {
+        return;
+      }
+      this.provisionalPoint = null;
+      return this.pointerMove(e);
+    };
+
+    Point.prototype.pointerLeave = function(e) {
+      var contextWreath;
+      if (!this.provisionalPoint) {
+        return;
+      }
+      contextWreath = this.editor.contextWreath;
+      contextWreath.objects = _.without(contextWreath.objects, this.provisionalPoint);
+      return this.provisionalPoint = null;
+    };
+
+    return Point;
+
+  })();
+
+  Editor.LineSegment = (function() {
+    function LineSegment(editor) {
+      this.editor = editor;
+    }
+
+    LineSegment.prototype.pointerDown = function(e) {};
+
+    LineSegment.prototype.pointerMove = function(e) {};
+
+    LineSegment.prototype.pointerUp = function(e) {};
+
+    LineSegment.prototype.pointerLeave = function(e) {};
+
+    return LineSegment;
+
+  })();
+
+  /*
+  
+  Concepts:
+  
+    Moving - point to move with pointermove events
+  
+    Provisional - geometries which would be deleted on pointerleave
+  
+  
+  makeProvisional
+  
+  removeProvisional
+  
+  moveMoving
+  
+  
+  
+  Point
+    make a point
+    *DONE
+  
+  Line
+    make a point
+    make a point, make a line from current point to previous point
+  */
+
 
   Geo = {};
 
@@ -530,7 +670,7 @@
       return this;
     } else {
       parent = this.parentNode;
-      if (parent != null) {
+      if ((parent != null) && parent.nodeType === Node.ELEMENT_NODE) {
         return parent.closest(fn);
       } else {
         return void 0;

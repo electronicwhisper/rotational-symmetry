@@ -33,7 +33,7 @@ class Canvas
 
 
   # ===========================================================================
-  # Drawing
+  # Drawing Misc
   # ===========================================================================
 
   clear: ->
@@ -51,7 +51,12 @@ class Canvas
     @ctx.lineTo(@width(), @height()/2)
     @ctx.stroke()
 
-  draw: (object) ->
+
+  # ===========================================================================
+  # Drawing Geo Objects
+  # ===========================================================================
+
+  drawObject: (object) ->
     if object instanceof Geo.Point
       @drawPoint(object)
     else if object instanceof Geo.Line
@@ -73,6 +78,28 @@ class Canvas
     @ctx.strokeStyle = "#000"
     @ctx.lineWidth = 1
     @ctx.stroke()
+
+
+  # ===========================================================================
+  # Hit Testing Geo Objects
+  # ===========================================================================
+
+  isObjectNearPoint: (object, canvasPoint) ->
+    if object instanceof Geo.Point
+      return @isPointNearPoint(object, canvasPoint)
+    else if object instanceof Geo.Line
+      return @isLineNearPoint(object, canvasPoint)
+
+  isPointNearPoint: (point, canvasPoint) ->
+    point = @workspaceToCanvas(point)
+    dx = point.x - canvasPoint.x
+    dy = point.y - canvasPoint.y
+    distanceSquared = (dx * dx) + (dy * dy)
+    return distanceSquared < 10*10
+
+  isLineNearPoint: (line, canvasPoint) ->
+    # TODO
+    return false
 
 
 

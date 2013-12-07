@@ -29,7 +29,8 @@ canvas {
   bottom: 0px;
   width: 72px;
   background: #ccc;
-  box-shadow: inset -2px 0px 1px rgba(0, 0, 0, 0.2);
+  box-shadow: inset -2px 0px 1px rgba(0,0,0,0.2);
+  /*box-shadow: 2px 0px 1px rgba(0,0,0,0.2);*/
 }
 .palette-tool {
   margin: 12px;
@@ -37,7 +38,7 @@ canvas {
   box-sizing: border-box;
   width: 48px;
   height: 48px;
-  box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.2);
+  box-shadow: 0px 2px 1px rgba(0,0,0,0.2);
 }
 .palette-tool[data-selected] {
   border-color: #f00;
@@ -46,14 +47,16 @@ canvas {
 </head>
 <body>
 
-<div id="palette" touch-action="none">
-  <div class="palette-tool" data-tool="select" data-selected><canvas></canvas></div>
-  <div class="palette-tool" data-tool="point"><canvas></canvas></div>
-  <div class="palette-tool" data-tool="lineSegment"><canvas></canvas></div>
-</div>
+
 
 <div id="main">
   <canvas id="c" touch-action="none"></canvas>
+</div>
+
+<div id="palette" touch-action="none">
+  <div class="palette-tool" data-tool="Select" data-selected><canvas></canvas></div>
+  <div class="palette-tool" data-tool="Point"><canvas></canvas></div>
+  <div class="palette-tool" data-tool="LineSegment"><canvas></canvas></div>
 </div>
 
 <script src="bower_components/underscore/underscore-min.js"></script>
