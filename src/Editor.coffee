@@ -13,10 +13,15 @@ class Editor
   # ===========================================================================
 
   setupModel: ->
+    @model = new Model.IdentityWreath()
     center = new Model.Point(new Geo.Point(0, 0))
-    centerAddress = new Model.Address(new Model.Path(), center)
-    @model = new Model.RotationWreath(centerAddress, 9)
-    @contextWreath = @model
+    @model.objects.push(center)
+
+    centerAddress = new Model.Address(new Model.Path([{wreath: @model, op: 0}]), center)
+    rotation = new Model.RotationWreath(centerAddress, 9)
+    @model.objects.push(rotation)
+
+    @contextWreath = rotation
 
 
   # ===========================================================================

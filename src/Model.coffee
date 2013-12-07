@@ -22,7 +22,11 @@ class Model.Wreath
     for op in @ops()
       for object in @objects
         if object instanceof Model.Wreath
-          "TODO"
+          childAddresses = object.addresses()
+          for childAddress in childAddresses
+            path = childAddress.path.prepend({wreath: this, op: op})
+            address = new Model.Address(path, childAddress.object)
+            result.push(address)
         else
           path = new Model.Path([{wreath: this, op: op}])
           address = new Model.Address(path, object)
@@ -72,6 +76,9 @@ class Model.RotationWreath extends Model.Wreath
 
 class Model.Path
   constructor: (@steps=[]) ->
+
+  prepend: (step) ->
+    return new Model.Path([step].concat(@steps))
 
   globalToLocal: (point) ->
     for step in @steps

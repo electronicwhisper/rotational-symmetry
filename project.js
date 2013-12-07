@@ -155,11 +155,19 @@
     }
 
     Editor.prototype.setupModel = function() {
-      var center, centerAddress;
+      var center, centerAddress, rotation;
+      this.model = new Model.IdentityWreath();
       center = new Model.Point(new Geo.Point(0, 0));
-      centerAddress = new Model.Address(new Model.Path(), center);
-      this.model = new Model.RotationWreath(centerAddress, 9);
-      return this.contextWreath = this.model;
+      this.model.objects.push(center);
+      centerAddress = new Model.Address(new Model.Path([
+        {
+          wreath: this.model,
+          op: 0
+        }
+      ]), center);
+      rotation = new Model.RotationWreath(centerAddress, 9);
+      this.model.objects.push(rotation);
+      return this.contextWreath = rotation;
     };
 
     Editor.prototype.setupPalette = function() {
@@ -548,7 +556,7 @@
     };
 
     Wreath.prototype.addresses = function() {
-      var address, object, op, path, result, _i, _j, _len, _len1, _ref, _ref1;
+      var address, childAddress, childAddresses, object, op, path, result, _i, _j, _k, _len, _len1, _len2, _ref, _ref1;
       result = [];
       _ref = this.ops();
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -557,7 +565,16 @@
         for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
           object = _ref1[_j];
           if (object instanceof Model.Wreath) {
-            "TODO";
+            childAddresses = object.addresses();
+            for (_k = 0, _len2 = childAddresses.length; _k < _len2; _k++) {
+              childAddress = childAddresses[_k];
+              path = childAddress.path.prepend({
+                wreath: this,
+                op: op
+              });
+              address = new Model.Address(path, childAddress.object);
+              result.push(address);
+            }
           } else {
             path = new Model.Path([
               {
@@ -647,6 +664,10 @@
     function Path(steps) {
       this.steps = steps != null ? steps : [];
     }
+
+    Path.prototype.prepend = function(step) {
+      return new Model.Path([step].concat(this.steps));
+    };
 
     Path.prototype.globalToLocal = function(point) {
       var inverseOp, op, step, wreath, _i, _len, _ref;
