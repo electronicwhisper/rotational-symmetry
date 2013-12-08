@@ -270,7 +270,6 @@
     Editor.prototype.draw = function() {
       var address, addresses, object, _i, _len, _results;
       this.canvas.clear();
-      this.canvas.drawAxes();
       addresses = this.model.addresses();
       _results = [];
       for (_i = 0, _len = addresses.length; _i < _len; _i++) {
@@ -380,7 +379,7 @@
   Editor.LineSegment = (function() {
     function LineSegment(editor) {
       this.editor = editor;
-      this.lastPoint = null;
+      this.lastAddress = null;
       this.provisionalPoint = null;
       this.provisionalLine = null;
     }
@@ -388,32 +387,58 @@
     LineSegment.prototype.pointerDown = function(e) {};
 
     LineSegment.prototype.pointerMove = function(e) {
-      var end, path, start, workspacePosition;
+      var end, moveToPoint, path, snapAddress, start;
       if (!this.provisionalPoint) {
         this.provisionalPoint = new Model.Point(new Geo.Point(0, 0));
         this.editor.contextWreath.objects.push(this.provisionalPoint);
-        if (this.lastPoint) {
+        if (this.lastAddress) {
           path = new Model.Path([
             {
               wreath: this.editor.contextWreath,
               op: 0
             }
           ]);
-          start = new Model.Address(path, this.lastPoint);
+          start = this.lastAddress;
           end = new Model.Address(path, this.provisionalPoint);
           this.provisionalLine = new Model.Line(start, end);
           this.editor.contextWreath.objects.push(this.provisionalLine);
         }
       }
-      workspacePosition = this.editor.workspacePosition(e);
-      return this.provisionalPoint.point = workspacePosition;
+      snapAddress = this.snapAddress(e);
+      if (snapAddress) {
+        moveToPoint = snapAddress.evaluate();
+      } else {
+        moveToPoint = this.editor.workspacePosition(e);
+      }
+      return this.provisionalPoint.point = moveToPoint;
     };
 
     LineSegment.prototype.pointerUp = function(e) {
+      var contextWreath, path, snapAddress;
       if (!this.provisionalPoint) {
         return;
       }
-      this.lastPoint = this.provisionalPoint;
+      snapAddress = this.snapAddress(e);
+      if (snapAddress) {
+        if (this.provisionalLine) {
+          this.provisionalLine.end = snapAddress;
+          contextWreath = this.editor.contextWreath;
+          contextWreath.objects = _.without(contextWreath.objects, this.provisionalPoint);
+          this.lastAddress = null;
+        } else {
+          contextWreath = this.editor.contextWreath;
+          contextWreath.objects = _.without(contextWreath.objects, this.provisionalPoint);
+          this.lastAddress = snapAddress;
+        }
+      } else {
+        path = new Model.Path([
+          {
+            wreath: this.editor.contextWreath,
+            op: 0
+          }
+        ]);
+        this.lastAddress = new Model.Address(path, this.provisionalPoint);
+      }
       this.provisionalPoint = null;
       return this.provisionalLine = null;
     };
@@ -427,6 +452,20 @@
       contextWreath.objects = _.without(contextWreath.objects, this.provisionalPoint, this.provisionalLine);
       this.provisionalPoint = null;
       return this.provisionalLine = null;
+    };
+
+    LineSegment.prototype.snapAddress = function(e) {
+      var snapAddresses,
+        _this = this;
+      snapAddresses = this.editor.addressesNearPointer(e);
+      snapAddresses = _.reject(snapAddresses, function(address) {
+        return address.object === _this.provisionalPoint;
+      });
+      if (snapAddresses.length > 0) {
+        return snapAddresses[0];
+      } else {
+        return null;
+      }
     };
 
     return LineSegment;

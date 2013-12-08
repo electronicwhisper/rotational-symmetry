@@ -114,7 +114,7 @@ class Editor
 
   draw: ->
     @canvas.clear()
-    @canvas.drawAxes()
+    # @canvas.drawAxes()
 
     addresses = @model.addresses()
     for address in addresses
@@ -188,7 +188,7 @@ class Editor.Point
 
 class Editor.LineSegment
   constructor: (@editor) ->
-    @lastPoint = null
+    @lastAddress = null
     @provisionalPoint = null
     @provisionalLine = null
 
@@ -197,20 +197,43 @@ class Editor.LineSegment
     if !@provisionalPoint
       @provisionalPoint = new Model.Point(new Geo.Point(0, 0))
       @editor.contextWreath.objects.push(@provisionalPoint)
-      if @lastPoint
+      if @lastAddress
         # TODO
         path = new Model.Path([wreath: @editor.contextWreath, op: 0])
-        start = new Model.Address(path, @lastPoint)
+        start = @lastAddress
         end = new Model.Address(path, @provisionalPoint)
         @provisionalLine = new Model.Line(start, end)
         @editor.contextWreath.objects.push(@provisionalLine)
 
-    workspacePosition = @editor.workspacePosition(e)
-    @provisionalPoint.point = workspacePosition
+    # Snapping
+    snapAddress = @snapAddress(e)
+    if snapAddress
+      moveToPoint = snapAddress.evaluate()
+    else
+      moveToPoint = @editor.workspacePosition(e)
+    @provisionalPoint.point = moveToPoint
+
+    # workspacePosition = @editor.workspacePosition(e)
+    # @provisionalPoint.point = workspacePosition
 
   pointerUp: (e) ->
     return unless @provisionalPoint
-    @lastPoint = @provisionalPoint
+    snapAddress = @snapAddress(e)
+    if snapAddress
+      if @provisionalLine
+        @provisionalLine.end = snapAddress
+        # Remove @provisionalPoint
+        contextWreath = @editor.contextWreath
+        contextWreath.objects = _.without(contextWreath.objects, @provisionalPoint)
+        @lastAddress = null
+      else
+        # Remove @provisionalPoint
+        contextWreath = @editor.contextWreath
+        contextWreath.objects = _.without(contextWreath.objects, @provisionalPoint)
+        @lastAddress = snapAddress
+    else
+      path = new Model.Path([wreath: @editor.contextWreath, op: 0])
+      @lastAddress = new Model.Address(path, @provisionalPoint)
     @provisionalPoint = null
     @provisionalLine = null
 
@@ -220,6 +243,15 @@ class Editor.LineSegment
     contextWreath.objects = _.without(contextWreath.objects, @provisionalPoint, @provisionalLine)
     @provisionalPoint = null
     @provisionalLine = null
+
+  snapAddress: (e) ->
+    snapAddresses = @editor.addressesNearPointer(e)
+    snapAddresses = _.reject snapAddresses, (address) =>
+      address.object == @provisionalPoint
+    if snapAddresses.length > 0
+      return snapAddresses[0]
+    else
+      return null
 
 ###
 
