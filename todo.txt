@@ -1,7 +1,26 @@
 Merge points together
+  Clean up Line snapping implementation, make points and move snap too
+
+
+
+Cleanup
+  Rename Address -> Ref
+  Move Palette stuff into its own class
+  Move tools things into classes
+
+
 
 Basic tools
   select - move points
   line - click around
     if click on point, go with that point
     if click on space, make a new point at that space
+
+
+
+Layer view
+
+
+Misc
+  Pan and zoom workspace
+  Get an offline version working on ipad
