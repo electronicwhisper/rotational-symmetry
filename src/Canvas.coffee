@@ -76,8 +76,8 @@ class Canvas
   drawPoint: (point) ->
     point = @workspaceToCanvas(point)
     @ctx.beginPath()
-    @ctx.arc(point.x, point.y, 3.5, 0, Math.PI*2)
-    @ctx.fillStyle = "#000"
+    @ctx.arc(point.x, point.y, 2.5, 0, Math.PI*2)
+    @ctx.fillStyle = "#333"
     @ctx.fill()
 
   drawLine: (line) ->
@@ -87,7 +87,7 @@ class Canvas
     @ctx.moveTo(start.x, start.y)
     @ctx.lineTo(end.x, end.y)
     @ctx.strokeStyle = "#000"
-    @ctx.lineWidth = 1
+    @ctx.lineWidth = 0.6
     @ctx.stroke()
 
 

@@ -97,8 +97,8 @@
     Canvas.prototype.drawPoint = function(point) {
       point = this.workspaceToCanvas(point);
       this.ctx.beginPath();
-      this.ctx.arc(point.x, point.y, 3.5, 0, Math.PI * 2);
-      this.ctx.fillStyle = "#000";
+      this.ctx.arc(point.x, point.y, 2.5, 0, Math.PI * 2);
+      this.ctx.fillStyle = "#333";
       return this.ctx.fill();
     };
 
@@ -110,7 +110,7 @@
       this.ctx.moveTo(start.x, start.y);
       this.ctx.lineTo(end.x, end.y);
       this.ctx.strokeStyle = "#000";
-      this.ctx.lineWidth = 1;
+      this.ctx.lineWidth = 0.6;
       return this.ctx.stroke();
     };
 
