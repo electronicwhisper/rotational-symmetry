@@ -1,8 +1,14 @@
 ###
 
-A Ref refers to a specific point/line/etc that can be seen on the screen. E.g.
-if there's a point within a 5-fold rotational wreath, that point would
-"generate" 5 Refs.
+A Ref refers to a specific point/line/etc within the context of a series of
+group transformations. For example, a point under the second operation of a
+five-fold rotation wreath.
+
+Every object on the screen has an associated Ref. (We use Wreath.refs() to
+generate all descendant refs.) There can also be Refs that are not drawn on
+the screen (for example a Ref to a point under a group operation for use as
+the endpoint of a line, even though the point does not live under that
+wreath.)
 
 ###
 

@@ -17,8 +17,8 @@ class Editor
     center = new Model.Point(new Geo.Point(0, 0))
     @model.objects.push(center)
 
-    centerAddress = new Ref(new Ref.Path([{wreath: @model, op: 0}]), center)
-    rotation = new Model.RotationWreath(centerAddress, 9)
+    centerRef = new Ref(new Ref.Path([{wreath: @model, op: 0}]), center)
+    rotation = new Model.RotationWreath(centerRef, 9)
     @model.objects.push(rotation)
 
     @contextWreath = rotation
@@ -116,46 +116,46 @@ class Editor
     @canvas.clear()
     # @canvas.drawAxes()
 
-    addresses = @model.addresses()
-    for address in addresses
-      object = address.evaluate()
+    refs = @model.refs()
+    for ref in refs
+      object = ref.evaluate()
       @canvas.drawObject(object)
 
 
-  addressesNearPointer: (e) ->
+  refsNearPointer: (e) ->
     pointerPosition = new Geo.Point(e.clientX, e.clientY)
     canvasPosition = @canvas.browserToCanvas(pointerPosition)
 
     result = []
-    addresses = @model.addresses()
-    for address in addresses
-      object = address.evaluate()
+    refs = @model.refs()
+    for ref in refs
+      object = ref.evaluate()
       isNear = @canvas.isObjectNearPoint(object, canvasPosition)
       if isNear
-        result.push(address)
+        result.push(ref)
     return result
 
 
 
 class Editor.Select
   constructor: (@editor) ->
-    @selectedAddress = null
+    @selectedRef = null
 
   pointerDown: (e) ->
-    found = @editor.addressesNearPointer(e)
+    found = @editor.refsNearPointer(e)
     if found.length > 0
-      @selectedAddress = found[0]
+      @selectedRef = found[0]
     else
-      @selectedAddress = null
+      @selectedRef = null
 
   pointerMove: (e) ->
-    return unless @selectedAddress
+    return unless @selectedRef
     workspacePosition = @editor.workspacePosition(e)
-    localPoint = @selectedAddress.path.globalToLocal(workspacePosition)
-    @selectedAddress.object.point = localPoint
+    localPoint = @selectedRef.path.globalToLocal(workspacePosition)
+    @selectedRef.object.point = localPoint
 
   pointerUp: (e) ->
-    @selectedAddress = null
+    @selectedRef = null
 
   pointerLeave: (e) ->
 
@@ -188,7 +188,7 @@ class Editor.Point
 
 class Editor.LineSegment
   constructor: (@editor) ->
-    @lastAddress = null
+    @lastRef = null
     @provisionalPoint = null
     @provisionalLine = null
 
@@ -197,18 +197,18 @@ class Editor.LineSegment
     if !@provisionalPoint
       @provisionalPoint = new Model.Point(new Geo.Point(0, 0))
       @editor.contextWreath.objects.push(@provisionalPoint)
-      if @lastAddress
+      if @lastRef
         # TODO
         path = new Ref.Path([wreath: @editor.contextWreath, op: 0])
-        start = @lastAddress
+        start = @lastRef
         end = new Ref(path, @provisionalPoint)
         @provisionalLine = new Model.Line(start, end)
         @editor.contextWreath.objects.push(@provisionalLine)
 
     # Snapping
-    snapAddress = @snapAddress(e)
-    if snapAddress
-      moveToPoint = snapAddress.evaluate()
+    snapRef = @snapRef(e)
+    if snapRef
+      moveToPoint = snapRef.evaluate()
     else
       moveToPoint = @editor.workspacePosition(e)
     @provisionalPoint.point = moveToPoint
@@ -218,22 +218,22 @@ class Editor.LineSegment
 
   pointerUp: (e) ->
     return unless @provisionalPoint
-    snapAddress = @snapAddress(e)
-    if snapAddress
+    snapRef = @snapRef(e)
+    if snapRef
       if @provisionalLine
-        @provisionalLine.end = snapAddress
+        @provisionalLine.end = snapRef
         # Remove @provisionalPoint
         contextWreath = @editor.contextWreath
         contextWreath.objects = _.without(contextWreath.objects, @provisionalPoint)
-        @lastAddress = null
+        @lastRef = null
       else
         # Remove @provisionalPoint
         contextWreath = @editor.contextWreath
         contextWreath.objects = _.without(contextWreath.objects, @provisionalPoint)
-        @lastAddress = snapAddress
+        @lastRef = snapRef
     else
       path = new Ref.Path([wreath: @editor.contextWreath, op: 0])
-      @lastAddress = new Ref(path, @provisionalPoint)
+      @lastRef = new Ref(path, @provisionalPoint)
     @provisionalPoint = null
     @provisionalLine = null
 
@@ -244,12 +244,12 @@ class Editor.LineSegment
     @provisionalPoint = null
     @provisionalLine = null
 
-  snapAddress: (e) ->
-    snapAddresses = @editor.addressesNearPointer(e)
-    snapAddresses = _.reject snapAddresses, (address) =>
-      address.object == @provisionalPoint
-    if snapAddresses.length > 0
-      return snapAddresses[0]
+  snapRef: (e) ->
+    snapRefs = @editor.refsNearPointer(e)
+    snapRefs = _.reject snapRefs, (snapRef) =>
+      snapRef.object == @provisionalPoint
+    if snapRefs.length > 0
+      return snapRefs[0]
     else
       return null
 

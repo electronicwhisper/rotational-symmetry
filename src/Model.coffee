@@ -17,20 +17,20 @@ class Model.Wreath
   inverse: (op) -> throw new Error("Not implemented.")
   perform: (op, point) -> throw new Error("Not implemented.")
 
-  addresses: ->
+  refs: ->
     result = []
     for op in @ops()
       for object in @objects
         if object instanceof Model.Wreath
-          childAddresses = object.addresses()
-          for childAddress in childAddresses
-            path = childAddress.path.prepend({wreath: this, op: op})
-            address = new Ref(path, childAddress.object)
-            result.push(address)
+          childRefs = object.refs()
+          for childRef in childRefs
+            path = childRef.path.prepend({wreath: this, op: op})
+            ref = new Ref(path, childRef.object)
+            result.push(ref)
         else
           path = new Ref.Path([{wreath: this, op: op}])
-          address = new Ref(path, object)
-          result.push(address)
+          ref = new Ref(path, object)
+          result.push(ref)
     return result
 
 

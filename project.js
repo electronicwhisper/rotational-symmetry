@@ -155,17 +155,17 @@
     }
 
     Editor.prototype.setupModel = function() {
-      var center, centerAddress, rotation;
+      var center, centerRef, rotation;
       this.model = new Model.IdentityWreath();
       center = new Model.Point(new Geo.Point(0, 0));
       this.model.objects.push(center);
-      centerAddress = new Ref(new Ref.Path([
+      centerRef = new Ref(new Ref.Path([
         {
           wreath: this.model,
           op: 0
         }
       ]), center);
-      rotation = new Model.RotationWreath(centerAddress, 9);
+      rotation = new Model.RotationWreath(centerRef, 9);
       this.model.objects.push(rotation);
       return this.contextWreath = rotation;
     };
@@ -268,30 +268,30 @@
     };
 
     Editor.prototype.draw = function() {
-      var address, addresses, object, _i, _len, _results;
+      var object, ref, refs, _i, _len, _results;
       this.canvas.clear();
-      addresses = this.model.addresses();
+      refs = this.model.refs();
       _results = [];
-      for (_i = 0, _len = addresses.length; _i < _len; _i++) {
-        address = addresses[_i];
-        object = address.evaluate();
+      for (_i = 0, _len = refs.length; _i < _len; _i++) {
+        ref = refs[_i];
+        object = ref.evaluate();
         _results.push(this.canvas.drawObject(object));
       }
       return _results;
     };
 
-    Editor.prototype.addressesNearPointer = function(e) {
-      var address, addresses, canvasPosition, isNear, object, pointerPosition, result, _i, _len;
+    Editor.prototype.refsNearPointer = function(e) {
+      var canvasPosition, isNear, object, pointerPosition, ref, refs, result, _i, _len;
       pointerPosition = new Geo.Point(e.clientX, e.clientY);
       canvasPosition = this.canvas.browserToCanvas(pointerPosition);
       result = [];
-      addresses = this.model.addresses();
-      for (_i = 0, _len = addresses.length; _i < _len; _i++) {
-        address = addresses[_i];
-        object = address.evaluate();
+      refs = this.model.refs();
+      for (_i = 0, _len = refs.length; _i < _len; _i++) {
+        ref = refs[_i];
+        object = ref.evaluate();
         isNear = this.canvas.isObjectNearPoint(object, canvasPosition);
         if (isNear) {
-          result.push(address);
+          result.push(ref);
         }
       }
       return result;
@@ -304,31 +304,31 @@
   Editor.Select = (function() {
     function Select(editor) {
       this.editor = editor;
-      this.selectedAddress = null;
+      this.selectedRef = null;
     }
 
     Select.prototype.pointerDown = function(e) {
       var found;
-      found = this.editor.addressesNearPointer(e);
+      found = this.editor.refsNearPointer(e);
       if (found.length > 0) {
-        return this.selectedAddress = found[0];
+        return this.selectedRef = found[0];
       } else {
-        return this.selectedAddress = null;
+        return this.selectedRef = null;
       }
     };
 
     Select.prototype.pointerMove = function(e) {
       var localPoint, workspacePosition;
-      if (!this.selectedAddress) {
+      if (!this.selectedRef) {
         return;
       }
       workspacePosition = this.editor.workspacePosition(e);
-      localPoint = this.selectedAddress.path.globalToLocal(workspacePosition);
-      return this.selectedAddress.object.point = localPoint;
+      localPoint = this.selectedRef.path.globalToLocal(workspacePosition);
+      return this.selectedRef.object.point = localPoint;
     };
 
     Select.prototype.pointerUp = function(e) {
-      return this.selectedAddress = null;
+      return this.selectedRef = null;
     };
 
     Select.prototype.pointerLeave = function(e) {};
@@ -379,7 +379,7 @@
   Editor.LineSegment = (function() {
     function LineSegment(editor) {
       this.editor = editor;
-      this.lastAddress = null;
+      this.lastRef = null;
       this.provisionalPoint = null;
       this.provisionalLine = null;
     }
@@ -387,26 +387,26 @@
     LineSegment.prototype.pointerDown = function(e) {};
 
     LineSegment.prototype.pointerMove = function(e) {
-      var end, moveToPoint, path, snapAddress, start;
+      var end, moveToPoint, path, snapRef, start;
       if (!this.provisionalPoint) {
         this.provisionalPoint = new Model.Point(new Geo.Point(0, 0));
         this.editor.contextWreath.objects.push(this.provisionalPoint);
-        if (this.lastAddress) {
+        if (this.lastRef) {
           path = new Ref.Path([
             {
               wreath: this.editor.contextWreath,
               op: 0
             }
           ]);
-          start = this.lastAddress;
+          start = this.lastRef;
           end = new Ref(path, this.provisionalPoint);
           this.provisionalLine = new Model.Line(start, end);
           this.editor.contextWreath.objects.push(this.provisionalLine);
         }
       }
-      snapAddress = this.snapAddress(e);
-      if (snapAddress) {
-        moveToPoint = snapAddress.evaluate();
+      snapRef = this.snapRef(e);
+      if (snapRef) {
+        moveToPoint = snapRef.evaluate();
       } else {
         moveToPoint = this.editor.workspacePosition(e);
       }
@@ -414,21 +414,21 @@
     };
 
     LineSegment.prototype.pointerUp = function(e) {
-      var contextWreath, path, snapAddress;
+      var contextWreath, path, snapRef;
       if (!this.provisionalPoint) {
         return;
       }
-      snapAddress = this.snapAddress(e);
-      if (snapAddress) {
+      snapRef = this.snapRef(e);
+      if (snapRef) {
         if (this.provisionalLine) {
-          this.provisionalLine.end = snapAddress;
+          this.provisionalLine.end = snapRef;
           contextWreath = this.editor.contextWreath;
           contextWreath.objects = _.without(contextWreath.objects, this.provisionalPoint);
-          this.lastAddress = null;
+          this.lastRef = null;
         } else {
           contextWreath = this.editor.contextWreath;
           contextWreath.objects = _.without(contextWreath.objects, this.provisionalPoint);
-          this.lastAddress = snapAddress;
+          this.lastRef = snapRef;
         }
       } else {
         path = new Ref.Path([
@@ -437,7 +437,7 @@
             op: 0
           }
         ]);
-        this.lastAddress = new Ref(path, this.provisionalPoint);
+        this.lastRef = new Ref(path, this.provisionalPoint);
       }
       this.provisionalPoint = null;
       return this.provisionalLine = null;
@@ -454,15 +454,15 @@
       return this.provisionalLine = null;
     };
 
-    LineSegment.prototype.snapAddress = function(e) {
-      var snapAddresses,
+    LineSegment.prototype.snapRef = function(e) {
+      var snapRefs,
         _this = this;
-      snapAddresses = this.editor.addressesNearPointer(e);
-      snapAddresses = _.reject(snapAddresses, function(address) {
-        return address.object === _this.provisionalPoint;
+      snapRefs = this.editor.refsNearPointer(e);
+      snapRefs = _.reject(snapRefs, function(snapRef) {
+        return snapRef.object === _this.provisionalPoint;
       });
-      if (snapAddresses.length > 0) {
-        return snapAddresses[0];
+      if (snapRefs.length > 0) {
+        return snapRefs[0];
       } else {
         return null;
       }
@@ -559,8 +559,8 @@
       throw new Error("Not implemented.");
     };
 
-    Wreath.prototype.addresses = function() {
-      var address, childAddress, childAddresses, object, op, path, result, _i, _j, _k, _len, _len1, _len2, _ref, _ref1;
+    Wreath.prototype.refs = function() {
+      var childRef, childRefs, object, op, path, ref, result, _i, _j, _k, _len, _len1, _len2, _ref, _ref1;
       result = [];
       _ref = this.ops();
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -569,15 +569,15 @@
         for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
           object = _ref1[_j];
           if (object instanceof Model.Wreath) {
-            childAddresses = object.addresses();
-            for (_k = 0, _len2 = childAddresses.length; _k < _len2; _k++) {
-              childAddress = childAddresses[_k];
-              path = childAddress.path.prepend({
+            childRefs = object.refs();
+            for (_k = 0, _len2 = childRefs.length; _k < _len2; _k++) {
+              childRef = childRefs[_k];
+              path = childRef.path.prepend({
                 wreath: this,
                 op: op
               });
-              address = new Ref(path, childAddress.object);
-              result.push(address);
+              ref = new Ref(path, childRef.object);
+              result.push(ref);
             }
           } else {
             path = new Ref.Path([
@@ -586,8 +586,8 @@
                 op: op
               }
             ]);
-            address = new Ref(path, object);
-            result.push(address);
+            ref = new Ref(path, object);
+            result.push(ref);
           }
         }
       }
@@ -666,9 +666,15 @@
 
   /*
   
-  A Ref refers to a specific point/line/etc that can be seen on the screen. E.g.
-  if there's a point within a 5-fold rotational wreath, that point would
-  "generate" 5 Refs.
+  A Ref refers to a specific point/line/etc within the context of a series of
+  group transformations. For example, a point under the second operation of a
+  five-fold rotation wreath.
+  
+  Every object on the screen has an associated Ref. (We use Wreath.refs() to
+  generate all descendant refs.) There can also be Refs that are not drawn on
+  the screen (for example a Ref to a point under a group operation for use as
+  the endpoint of a line, even though the point does not live under that
+  wreath.)
   */
 
 
