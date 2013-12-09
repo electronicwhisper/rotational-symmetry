@@ -25,11 +25,11 @@ class Model.Wreath
           childAddresses = object.addresses()
           for childAddress in childAddresses
             path = childAddress.path.prepend({wreath: this, op: op})
-            address = new Model.Address(path, childAddress.object)
+            address = new Ref(path, childAddress.object)
             result.push(address)
         else
-          path = new Model.Path([{wreath: this, op: op}])
-          address = new Model.Address(path, object)
+          path = new Ref.Path([{wreath: this, op: op}])
+          address = new Ref(path, object)
           result.push(address)
     return result
 
@@ -68,59 +68,3 @@ class Model.RotationWreath extends Model.Wreath
     x = Math.cos(angle) * point.x - Math.sin(angle) * point.y
     y = Math.sin(angle) * point.x + Math.cos(angle) * point.y
     return new Geo.Point(x, y)
-
-
-
-
-
-
-class Model.Path
-  constructor: (@steps=[]) ->
-
-  prepend: (step) ->
-    return new Model.Path([step].concat(@steps))
-
-  globalToLocal: (point) ->
-    for step in @steps
-      {wreath, op} = step
-      inverseOp = wreath.inverse(op)
-      point = wreath.perform(inverseOp, point)
-    return point
-
-  localToGlobal: (point) ->
-    for step in @steps.slice().reverse()
-      {wreath, op} = step
-      point = wreath.perform(op, point)
-    return point
-
-
-
-class Model.Address
-  constructor: (@path, @object) ->
-
-  evaluate: ->
-    if @object instanceof Model.Point
-      point = @object.point
-      return @path.localToGlobal(point)
-    else if @object instanceof Model.Line
-      start = @path.localToGlobal(@object.start.evaluate())
-      end = @path.localToGlobal(@object.end.evaluate())
-      return new Geo.Line(start, end)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

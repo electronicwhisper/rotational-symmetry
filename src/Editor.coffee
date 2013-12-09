@@ -17,7 +17,7 @@ class Editor
     center = new Model.Point(new Geo.Point(0, 0))
     @model.objects.push(center)
 
-    centerAddress = new Model.Address(new Model.Path([{wreath: @model, op: 0}]), center)
+    centerAddress = new Ref(new Ref.Path([{wreath: @model, op: 0}]), center)
     rotation = new Model.RotationWreath(centerAddress, 9)
     @model.objects.push(rotation)
 
@@ -199,9 +199,9 @@ class Editor.LineSegment
       @editor.contextWreath.objects.push(@provisionalPoint)
       if @lastAddress
         # TODO
-        path = new Model.Path([wreath: @editor.contextWreath, op: 0])
+        path = new Ref.Path([wreath: @editor.contextWreath, op: 0])
         start = @lastAddress
-        end = new Model.Address(path, @provisionalPoint)
+        end = new Ref(path, @provisionalPoint)
         @provisionalLine = new Model.Line(start, end)
         @editor.contextWreath.objects.push(@provisionalLine)
 
@@ -232,8 +232,8 @@ class Editor.LineSegment
         contextWreath.objects = _.without(contextWreath.objects, @provisionalPoint)
         @lastAddress = snapAddress
     else
-      path = new Model.Path([wreath: @editor.contextWreath, op: 0])
-      @lastAddress = new Model.Address(path, @provisionalPoint)
+      path = new Ref.Path([wreath: @editor.contextWreath, op: 0])
+      @lastAddress = new Ref(path, @provisionalPoint)
     @provisionalPoint = null
     @provisionalLine = null
 
