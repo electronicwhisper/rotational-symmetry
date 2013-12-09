@@ -92,9 +92,6 @@ class Editor
     pointerPosition = new Geo.Point(e.clientX, e.clientY)
     return workspacePosition = @canvas.browserToWorkspace(pointerPosition)
 
-
-
-
   canvasPointerDown: (e) =>
     @tool.pointerDown(e)
     @draw()
@@ -134,6 +131,23 @@ class Editor
       if isNear
         result.push(ref)
     return result
+
+
+  mergePointRefs: (destinationRef, sourceRef) ->
+
+
+  removeObject: (object) ->
+    removeObjectFromWreath = (object, wreath) ->
+      wreath.objects = _.without(wreath.objects, object)
+      # Recurse
+      for child in wreath.objects
+        if child instanceof Model.Wreath
+          removeObjectFromWreath(object, child)
+    removeObjectFromWreath(object, @model)
+
+  movePointRef: (pointRef, workspacePosition) ->
+
+  findSnapRef: (e, excludePoints=[]) ->
 
 
 
@@ -181,8 +195,7 @@ class Editor.Point
 
   pointerLeave: (e) ->
     return unless @provisionalPoint
-    contextWreath = @editor.contextWreath
-    contextWreath.objects = _.without(contextWreath.objects, @provisionalPoint)
+    @editor.removeObject(@provisionalPoint)
     @provisionalPoint = null
 
 
@@ -213,23 +226,16 @@ class Editor.LineSegment
       moveToPoint = @editor.workspacePosition(e)
     @provisionalPoint.point = moveToPoint
 
-    # workspacePosition = @editor.workspacePosition(e)
-    # @provisionalPoint.point = workspacePosition
-
   pointerUp: (e) ->
     return unless @provisionalPoint
     snapRef = @snapRef(e)
     if snapRef
       if @provisionalLine
         @provisionalLine.end = snapRef
-        # Remove @provisionalPoint
-        contextWreath = @editor.contextWreath
-        contextWreath.objects = _.without(contextWreath.objects, @provisionalPoint)
+        @editor.removeObject(@provisionalPoint)
         @lastRef = null
       else
-        # Remove @provisionalPoint
-        contextWreath = @editor.contextWreath
-        contextWreath.objects = _.without(contextWreath.objects, @provisionalPoint)
+        @editor.removeObject(@provisionalPoint)
         @lastRef = snapRef
     else
       path = new Ref.Path([wreath: @editor.contextWreath, op: 0])
@@ -239,8 +245,8 @@ class Editor.LineSegment
 
   pointerLeave: (e) ->
     return unless @provisionalPoint
-    contextWreath = @editor.contextWreath
-    contextWreath.objects = _.without(contextWreath.objects, @provisionalPoint, @provisionalLine)
+    @editor.removeObject(@provisionalPoint)
+    @editor.removeObject(@provisionalLine) if @provisionalLine
     @provisionalPoint = null
     @provisionalLine = null
 

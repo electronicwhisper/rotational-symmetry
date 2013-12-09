@@ -297,6 +297,36 @@
       return result;
     };
 
+    Editor.prototype.mergePointRefs = function(destinationRef, sourceRef) {};
+
+    Editor.prototype.removeObject = function(object) {
+      var removeObjectFromWreath;
+      removeObjectFromWreath = function(object, wreath) {
+        var child, _i, _len, _ref, _results;
+        wreath.objects = _.without(wreath.objects, object);
+        _ref = wreath.objects;
+        _results = [];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          child = _ref[_i];
+          if (child instanceof Model.Wreath) {
+            _results.push(removeObjectFromWreath(object, child));
+          } else {
+            _results.push(void 0);
+          }
+        }
+        return _results;
+      };
+      return removeObjectFromWreath(object, this.model);
+    };
+
+    Editor.prototype.movePointRef = function(pointRef, workspacePosition) {};
+
+    Editor.prototype.findSnapRef = function(e, excludePoints) {
+      if (excludePoints == null) {
+        excludePoints = [];
+      }
+    };
+
     return Editor;
 
   })();
@@ -363,12 +393,10 @@
     };
 
     Point.prototype.pointerLeave = function(e) {
-      var contextWreath;
       if (!this.provisionalPoint) {
         return;
       }
-      contextWreath = this.editor.contextWreath;
-      contextWreath.objects = _.without(contextWreath.objects, this.provisionalPoint);
+      this.editor.removeObject(this.provisionalPoint);
       return this.provisionalPoint = null;
     };
 
@@ -414,7 +442,7 @@
     };
 
     LineSegment.prototype.pointerUp = function(e) {
-      var contextWreath, path, snapRef;
+      var path, snapRef;
       if (!this.provisionalPoint) {
         return;
       }
@@ -422,12 +450,10 @@
       if (snapRef) {
         if (this.provisionalLine) {
           this.provisionalLine.end = snapRef;
-          contextWreath = this.editor.contextWreath;
-          contextWreath.objects = _.without(contextWreath.objects, this.provisionalPoint);
+          this.editor.removeObject(this.provisionalPoint);
           this.lastRef = null;
         } else {
-          contextWreath = this.editor.contextWreath;
-          contextWreath.objects = _.without(contextWreath.objects, this.provisionalPoint);
+          this.editor.removeObject(this.provisionalPoint);
           this.lastRef = snapRef;
         }
       } else {
@@ -444,12 +470,13 @@
     };
 
     LineSegment.prototype.pointerLeave = function(e) {
-      var contextWreath;
       if (!this.provisionalPoint) {
         return;
       }
-      contextWreath = this.editor.contextWreath;
-      contextWreath.objects = _.without(contextWreath.objects, this.provisionalPoint, this.provisionalLine);
+      this.editor.removeObject(this.provisionalPoint);
+      if (this.provisionalLine) {
+        this.editor.removeObject(this.provisionalLine);
+      }
       this.provisionalPoint = null;
       return this.provisionalLine = null;
     };
