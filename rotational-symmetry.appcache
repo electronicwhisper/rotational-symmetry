@@ -1,0 +1,12 @@
+CACHE MANIFEST
+# version 1
+
+# Comment out project.js while developing (and refresh)
+
+CACHE:
+project.js
+vendor/pointerevents.min.js
+vendor/underscore-min.js
+
+NETWORK:
+*
