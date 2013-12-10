@@ -16,6 +16,8 @@ class Canvas
                         @ctx.backingStorePixelRatio || 1
     @ratio = devicePixelRatio / backingStoreRatio
 
+    # @ratio = 1
+
     rect = @el.getBoundingClientRect()
     @el.width = rect.width * @ratio
     @el.height = rect.height * @ratio
@@ -106,7 +108,7 @@ class Canvas
     dx = point.x - canvasPoint.x
     dy = point.y - canvasPoint.y
     distanceSquared = (dx * dx) + (dy * dy)
-    return distanceSquared < 10*10
+    return distanceSquared < 15*15
 
   isLineNearPoint: (line, canvasPoint) ->
     # TODO

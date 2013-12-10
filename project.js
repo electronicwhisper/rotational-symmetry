@@ -128,7 +128,7 @@
       dx = point.x - canvasPoint.x;
       dy = point.y - canvasPoint.y;
       distanceSquared = (dx * dx) + (dy * dy);
-      return distanceSquared < 10 * 10;
+      return distanceSquared < 15 * 15;
     };
 
     Canvas.prototype.isLineNearPoint = function(line, canvasPoint) {
