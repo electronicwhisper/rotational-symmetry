@@ -4,6 +4,7 @@ class Editor
     @contextWreath = null
 
     @setupModel()
+    @setupLayerManager()
     @setupPalette()
     @setupCanvas()
 
@@ -22,6 +23,14 @@ class Editor
     @model.objects.push(rotation)
 
     @contextWreath = rotation
+
+
+  # ===========================================================================
+  # Layer Manager
+  # ===========================================================================
+
+  setupLayerManager: ->
+    @layerManager = new LayerManager(@model)
 
 
   # ===========================================================================
@@ -93,6 +102,7 @@ class Editor
     return workspacePosition = @canvas.browserToWorkspace(pointerPosition)
 
   canvasPointerDown: (e) =>
+    e.preventDefault()
     @tool.pointerDown(e)
     @draw()
 
@@ -117,6 +127,8 @@ class Editor
     for ref in refs
       object = ref.evaluate()
       @canvas.drawObject(object)
+
+    @layerManager.updateDOM()
 
 
   refsNearPointer: (e) ->

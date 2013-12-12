@@ -2,10 +2,12 @@ Model = {}
 
 
 class Model.Point
+  name: "Point"
   constructor: (@point) ->
 
 
 class Model.Line
+  name: "Line"
   constructor: (@start, @end) ->
 
 
@@ -35,6 +37,7 @@ class Model.Wreath
 
 
 class Model.IdentityWreath extends Model.Wreath
+  name: "Group"
   constructor: ->
     super()
 
@@ -47,6 +50,7 @@ class Model.IdentityWreath extends Model.Wreath
 
 
 class Model.RotationWreath extends Model.Wreath
+  name: "Rotation Group"
   constructor: (@center, @n) ->
     super()
 

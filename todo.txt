@@ -4,7 +4,6 @@ Merge points together
 
 
 Cleanup
-  Rename Address -> Ref
   Move Palette stuff into its own class
   Move tools things into classes
 
