@@ -14,3 +14,8 @@ Element::closest = (selector) ->
       return parent.closest(fn)
     else
       return undefined
+
+makeElFromHTML = (html) ->
+  dummy = document.createElement("div")
+  dummy.innerHTML = html.trim()
+  return dummy.firstChild

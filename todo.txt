@@ -1,3 +1,16 @@
+Renderer
+Choose context to put things down in layer manager
+Get rid of points in model
+Point merging
+
+
+
+
+
+
+
+
+
 Merge points together
   Clean up Line snapping implementation, make points and move snap too
 

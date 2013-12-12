@@ -1,25 +1,29 @@
 class LayerManager
 
-  constructor: (@model) ->
+  constructor: ->
     @layersEl = document.querySelector("#layers")
-    @updateDOM()
 
 
-  updateDOM: ->
-    @layersEl.innerHTML = @childrenToHTML(@model)
+  writeModelToDOM: (model) ->
+    @layersEl.innerHTML = ""
+    els = @childrenToEls(model)
+    @layersEl.appendChild(els)
 
 
-  objectToHTML: (object) ->
-    """
+  objectToEl: (object) ->
+    html = """
       <div class="layer">
         <div class="layer-main">#{object.name}</div>
-        <div class="layer-children">#{@childrenToHTML(object)}</div>
+        <div class="layer-children"></div>
       </div>
     """
+    el = makeElFromHTML(html)
+    el.querySelector(".layer-children").appendChild(@childrenToEls(object))
 
-  childrenToHTML: (object) ->
-    childrenHTML = ""
+  childrenToEls: (object) ->
+    els = document.createDocumentFragment()
     if object instanceof Model.Wreath
       for childObject in object.objects
-        childrenHTML += @objectToHTML(childObject)
-    return childrenHTML
+        childEl = @objectToEl(childObject)
+        els.appendChild(childEl)
+    return els

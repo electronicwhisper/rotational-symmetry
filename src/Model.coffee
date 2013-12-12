@@ -29,10 +29,10 @@ class Model.Wreath
             path = childRef.path.prepend({wreath: this, op: op})
             ref = new Ref(path, childRef.object)
             result.push(ref)
-        else
-          path = new Ref.Path([{wreath: this, op: op}])
-          ref = new Ref(path, object)
-          result.push(ref)
+
+        path = new Ref.Path([{wreath: this, op: op}])
+        ref = new Ref(path, object)
+        result.push(ref)
     return result
 
 
