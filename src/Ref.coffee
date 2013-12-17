@@ -30,14 +30,23 @@ class Ref
 
 class Ref.Path
   constructor: (@steps=[]) ->
+    # Check it
+    for step in @steps
+      unless step.wreath? && step.op?
+        console.error("bad path", @steps)
 
-  prepend: (step) ->
-    return new Ref.Path([step].concat(@steps))
+  prepend: (steps) ->
+    if steps instanceof Ref.Path
+      steps = steps.steps
+    else if !_.isArray(steps)
+      steps = [steps]
+
+    return new Ref.Path(steps.concat(@steps))
 
   isEqual: (otherPath) ->
     for step, i in @steps
       otherStep = otherPath.steps[i]
-      unless step.wreath == otherStep.wreath && step.op ==otherStep.op
+      unless otherStep && step.wreath == otherStep.wreath && step.op == otherStep.op
         return false
     return true
 

@@ -260,17 +260,18 @@
     };
 
     Editor.prototype.refsNearPointer = function(e) {
-      var canvasPosition, isNear, object, pointerPosition, ref, refs, result, _i, _len;
+      var canvasPosition, isNear, point, pointRef, pointRefs, pointerPosition, result, _i, _len;
       pointerPosition = new Geo.Point(e.clientX, e.clientY);
       canvasPosition = this.canvas.browserToCanvas(pointerPosition);
       result = [];
-      refs = this.model.refs();
-      for (_i = 0, _len = refs.length; _i < _len; _i++) {
-        ref = refs[_i];
-        object = ref.evaluate();
-        isNear = this.canvas.isObjectNearPoint(object, canvasPosition);
+      pointRefs = this.model.pointRefs();
+      console.log("got here", pointRefs.length);
+      for (_i = 0, _len = pointRefs.length; _i < _len; _i++) {
+        pointRef = pointRefs[_i];
+        point = pointRef.evaluate();
+        isNear = this.canvas.isObjectNearPoint(point, canvasPosition);
         if (isNear) {
-          result.push(ref);
+          result.push(pointRef);
         }
       }
       return result;
@@ -645,6 +646,34 @@
       return result;
     };
 
+    Wreath.prototype.pointRefs = function() {
+      var add, ref, result, _i, _len, _ref;
+      result = [];
+      add = function(ref, pointRef) {
+        var existingRef, path, _i, _len;
+        path = pointRef.path.prepend(ref.path);
+        ref = new Ref(path, pointRef.object);
+        for (_i = 0, _len = result.length; _i < _len; _i++) {
+          existingRef = result[_i];
+          if (ref.isEqual(existingRef)) {
+            return;
+          }
+        }
+        return result.push(ref);
+      };
+      _ref = this.refs();
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        ref = _ref[_i];
+        if (ref.object instanceof Model.Line) {
+          add(ref, ref.object.start);
+          add(ref, ref.object.end);
+        } else if (ref.object instanceof Model.RotationWreath) {
+          add(ref, ref.object.center);
+        }
+      }
+      return result;
+    };
+
     return Wreath;
 
   })();
@@ -761,11 +790,24 @@
 
   Ref.Path = (function() {
     function Path(steps) {
+      var step, _i, _len, _ref;
       this.steps = steps != null ? steps : [];
+      _ref = this.steps;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        step = _ref[_i];
+        if (!((step.wreath != null) && (step.op != null))) {
+          console.error("bad path", this.steps);
+        }
+      }
     }
 
-    Path.prototype.prepend = function(step) {
-      return new Ref.Path([step].concat(this.steps));
+    Path.prototype.prepend = function(steps) {
+      if (steps instanceof Ref.Path) {
+        steps = steps.steps;
+      } else if (!_.isArray(steps)) {
+        steps = [steps];
+      }
+      return new Ref.Path(steps.concat(this.steps));
     };
 
     Path.prototype.isEqual = function(otherPath) {
@@ -774,7 +816,7 @@
       for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
         step = _ref[i];
         otherStep = otherPath.steps[i];
-        if (!(step.wreath === otherStep.wreath && step.op === otherStep.op)) {
+        if (!(otherStep && step.wreath === otherStep.wreath && step.op === otherStep.op)) {
           return false;
         }
       }
@@ -811,27 +853,31 @@
   Render = {};
 
   Render.render = function(canvas, editor) {
-    var center, end, model, object, point, ref, refs, start, _i, _len, _results;
+    var center, end, model, object, point, pointRef, ref, refs, start, _i, _j, _len, _len1, _ref, _results;
     canvas.clear();
     model = editor.model;
     refs = model.refs();
-    _results = [];
     for (_i = 0, _len = refs.length; _i < _len; _i++) {
       ref = refs[_i];
       object = ref.object;
       if (object instanceof Model.Point) {
         point = ref.evaluate();
-        _results.push(Render.drawPoint(canvas, point));
+        Render.drawPoint(canvas, point);
       } else if (object instanceof Model.Line) {
         start = ref.path.localToGlobal(object.start.evaluate());
         end = ref.path.localToGlobal(object.end.evaluate());
-        _results.push(Render.drawLine(canvas, start, end));
+        Render.drawLine(canvas, start, end);
       } else if (object instanceof Model.RotationWreath) {
         center = ref.path.localToGlobal(object.center.evaluate());
-        _results.push(Render.drawRotationWreath(canvas, center, object.n));
-      } else {
-        _results.push(void 0);
+        Render.drawRotationWreath(canvas, center, object.n);
       }
+    }
+    _ref = model.pointRefs();
+    _results = [];
+    for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
+      pointRef = _ref[_j];
+      point = pointRef.evaluate();
+      _results.push(Render.drawPoint(canvas, point));
     }
     return _results;
   };

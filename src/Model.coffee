@@ -35,6 +35,26 @@ class Model.Wreath
         result.push(ref)
     return result
 
+  pointRefs: ->
+    result = []
+
+    add = (ref, pointRef) ->
+      path = pointRef.path.prepend(ref.path)
+      ref = new Ref(path, pointRef.object)
+      for existingRef in result
+        if ref.isEqual(existingRef)
+          return
+      result.push(ref)
+
+    for ref in @refs()
+      if ref.object instanceof Model.Line
+        add(ref, ref.object.start)
+        add(ref, ref.object.end)
+      else if ref.object instanceof Model.RotationWreath
+        add(ref, ref.object.center)
+
+    return result
+
 
 class Model.IdentityWreath extends Model.Wreath
   name: "Group"

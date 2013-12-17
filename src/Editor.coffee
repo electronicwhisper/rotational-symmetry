@@ -129,12 +129,19 @@ class Editor
     canvasPosition = @canvas.browserToCanvas(pointerPosition)
 
     result = []
-    refs = @model.refs()
-    for ref in refs
-      object = ref.evaluate()
-      isNear = @canvas.isObjectNearPoint(object, canvasPosition)
+    # refs = @model.refs()
+    # for ref in refs
+    #   object = ref.evaluate()
+    #   isNear = @canvas.isObjectNearPoint(object, canvasPosition)
+    #   if isNear
+    #     result.push(ref)
+    pointRefs = @model.pointRefs()
+    console.log "got here", pointRefs.length
+    for pointRef in pointRefs
+      point = pointRef.evaluate()
+      isNear = @canvas.isObjectNearPoint(point, canvasPosition)
       if isNear
-        result.push(ref)
+        result.push(pointRef)
     return result
 
 

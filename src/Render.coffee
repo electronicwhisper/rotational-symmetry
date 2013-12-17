@@ -10,7 +10,7 @@ Render.render = (canvas, editor) ->
     object = ref.object
 
     if object instanceof Model.Point
-      # point = ref.path.localToGlobal(object.point)
+      # # point = ref.path.localToGlobal(object.point)
       point = ref.evaluate()
       Render.drawPoint(canvas, point)
 
@@ -22,6 +22,10 @@ Render.render = (canvas, editor) ->
     else if object instanceof Model.RotationWreath
       center = ref.path.localToGlobal(object.center.evaluate())
       Render.drawRotationWreath(canvas, center, object.n)
+
+  for pointRef in model.pointRefs()
+    point = pointRef.evaluate()
+    Render.drawPoint(canvas, point)
 
 
 
