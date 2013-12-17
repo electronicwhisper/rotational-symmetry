@@ -1,7 +1,8 @@
+
 Get rid of points in model
 Point merging
 
-
+Make hover/selected
 
 
 

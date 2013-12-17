@@ -25,90 +25,114 @@ class EditorTool.Select
 
 
 
-class EditorTool.Point
-  constructor: (@editor) ->
-    @provisionalPoint = null
-
-  pointerDown: (e) ->
-
-  pointerMove: (e) ->
-    if !@provisionalPoint
-      @provisionalPoint = new Model.Point(new Geo.Point(0, 0))
-      @editor.contextWreath.objects.push(@provisionalPoint)
-
-    workspacePosition = @editor.workspacePosition(e)
-    @provisionalPoint.point = workspacePosition
-
-  pointerUp: (e) ->
-    return unless @provisionalPoint
-    @provisionalPoint = null
-
-  pointerLeave: (e) ->
-    return unless @provisionalPoint
-    @editor.removeObject(@provisionalPoint)
-    @provisionalPoint = null
-
-
-
 class EditorTool.LineSegment
   constructor: (@editor) ->
-    @lastRef = null
-    @provisionalPoint = null
+    @previousPointRef = null
+    @currentPointRef = null
     @provisionalLine = null
 
   pointerDown: (e) ->
-  pointerMove: (e) ->
-    if !@provisionalPoint
-      @provisionalPoint = new Model.Point(new Geo.Point(0, 0))
-      @editor.contextWreath.objects.push(@provisionalPoint)
-      if @lastRef
-        # TODO contextWreath should really be a Ref so that the following path can be correct.
-        path = new Ref.Path([wreath: @editor.contextWreath, op: 0])
-        start = @lastRef
-        end = new Ref(path, @provisionalPoint)
-        @provisionalLine = new Model.Line(start, end)
-        @editor.contextWreath.objects.push(@provisionalLine)
 
-    # Snapping
+  pointerMove: (e) ->
+    if !@currentPointRef
+      point = new Model.Point(new Geo.Point(0, 0))
+      path = new Ref.Path([])
+      @currentPointRef = new Ref(path, point)
+      if @previousPointRef
+        start = @previousPointRef
+      else
+        start = @currentPointRef
+      end = @currentPointRef
+      @provisionalLine = new Model.Line(start, end)
+      @editor.contextWreath.objects.push(@provisionalLine)
+
     snapRef = @snapRef(e)
     if snapRef
       moveToPoint = snapRef.evaluate()
     else
       moveToPoint = @editor.workspacePosition(e)
-    @provisionalPoint.point = moveToPoint
+    @currentPointRef.object.point = moveToPoint
 
   pointerUp: (e) ->
-    return unless @provisionalPoint
+    return unless @currentPointRef
     snapRef = @snapRef(e)
+
     if snapRef
-      if @provisionalLine
+      if @previousPointRef
         @provisionalLine.end = snapRef
-        @editor.removeObject(@provisionalPoint)
-        @lastRef = null
+        @previousPointRef = null
       else
-        @editor.removeObject(@provisionalPoint)
-        @lastRef = snapRef
+        @previousPointRef = snapRef
     else
-      path = new Ref.Path([wreath: @editor.contextWreath, op: 0])
-      @lastRef = new Ref(path, @provisionalPoint)
-    @provisionalPoint = null
+      @previousPointRef = @currentPointRef
+
+    @currentPointRef = null
     @provisionalLine = null
 
   pointerLeave: (e) ->
-    return unless @provisionalPoint
-    @editor.removeObject(@provisionalPoint)
+    return unless @currentPointRef
     @editor.removeObject(@provisionalLine) if @provisionalLine
-    @provisionalPoint = null
+    @currentPointRef = null
     @provisionalLine = null
 
   snapRef: (e) ->
-    snapRefs = @editor.refsNearPointer(e)
-    snapRefs = _.reject snapRefs, (snapRef) =>
-      snapRef.object == @provisionalPoint
-    if snapRefs.length > 0
-      return snapRefs[0]
-    else
-      return null
+    @editor.findSnapRef(e, [@currentPointRef.object])
+
+
+
+# class EditorTool.LineSegment
+#   constructor: (@editor) ->
+#     @lastRef = null
+#     @provisionalPoint = null
+#     @provisionalLine = null
+
+#   pointerDown: (e) ->
+#   pointerMove: (e) ->
+#     if !@provisionalPoint
+#       @provisionalPoint = new Model.Point(new Geo.Point(0, 0))
+#       @editor.contextWreath.objects.push(@provisionalPoint)
+#       if @lastRef
+#         # TODO contextWreath should really be a Ref so that the following path can be correct.
+#         path = new Ref.Path([wreath: @editor.contextWreath, op: 0])
+#         start = @lastRef
+#         end = new Ref(path, @provisionalPoint)
+#         @provisionalLine = new Model.Line(start, end)
+#         @editor.contextWreath.objects.push(@provisionalLine)
+
+#     # Snapping
+#     snapRef = @snapRef(e)
+#     if snapRef
+#       moveToPoint = snapRef.evaluate()
+#     else
+#       moveToPoint = @editor.workspacePosition(e)
+#     @provisionalPoint.point = moveToPoint
+
+#   pointerUp: (e) ->
+#     return unless @provisionalPoint
+#     snapRef = @snapRef(e)
+#     if snapRef
+#       if @provisionalLine
+#         @provisionalLine.end = snapRef
+#         @editor.removeObject(@provisionalPoint)
+#         @lastRef = null
+#       else
+#         @editor.removeObject(@provisionalPoint)
+#         @lastRef = snapRef
+#     else
+#       path = new Ref.Path([wreath: @editor.contextWreath, op: 0])
+#       @lastRef = new Ref(path, @provisionalPoint)
+#     @provisionalPoint = null
+#     @provisionalLine = null
+
+#   pointerLeave: (e) ->
+#     return unless @provisionalPoint
+#     @editor.removeObject(@provisionalPoint)
+#     @editor.removeObject(@provisionalLine) if @provisionalLine
+#     @provisionalPoint = null
+#     @provisionalLine = null
+
+#   snapRef: (e) ->
+#     @editor.findSnapRef(e, [@provisionalPoint])
 
 
 

@@ -16,7 +16,7 @@ class Editor
   setupModel: ->
     @model = new Model.IdentityWreath()
     center = new Model.Point(new Geo.Point(0, 0))
-    @model.objects.push(center)
+    # @model.objects.push(center)
 
     centerRef = new Ref(new Ref.Path([{wreath: @model, op: 0}]), center)
     rotation = new Model.RotationWreath(centerRef, 12)
@@ -49,9 +49,6 @@ class Editor
   drawPaletteTool: (toolName, canvasEl) ->
     canvas = new Canvas(canvasEl)
     if toolName == "Select"
-
-    else if toolName == "Point"
-      Render.drawPoint(canvas, new Geo.Point(0, 0))
 
     else if toolName == "LineSegment"
       p1 = new Geo.Point(-10, -10)
@@ -129,14 +126,7 @@ class Editor
     canvasPosition = @canvas.browserToCanvas(pointerPosition)
 
     result = []
-    # refs = @model.refs()
-    # for ref in refs
-    #   object = ref.evaluate()
-    #   isNear = @canvas.isObjectNearPoint(object, canvasPosition)
-    #   if isNear
-    #     result.push(ref)
     pointRefs = @model.pointRefs()
-    console.log "got here", pointRefs.length
     for pointRef in pointRefs
       point = pointRef.evaluate()
       isNear = @canvas.isObjectNearPoint(point, canvasPosition)
@@ -145,8 +135,9 @@ class Editor
     return result
 
 
-  mergePointRefs: (destinationRef, sourceRef) ->
-
+  mergePointRefs: (pointRefs...) ->
+    point = pointRefs[0].evaluate
+    # Iterate through model. Any Ref to a Model.Point equal to one of the pointRefs' objects needs to change.
 
   removeObject: (object) ->
     removeObjectFromWreath = (object, wreath) ->
@@ -160,6 +151,12 @@ class Editor
   movePointRef: (pointRef, workspacePosition) ->
 
   findSnapRef: (e, excludePoints=[]) ->
-
+    snapRefs = @refsNearPointer(e)
+    snapRefs = _.reject snapRefs, (snapRef) =>
+      _.contains(excludePoints, snapRef.object)
+    if snapRefs.length > 0
+      return snapRefs[0]
+    else
+      return null
 
 
