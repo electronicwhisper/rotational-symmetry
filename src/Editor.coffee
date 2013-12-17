@@ -30,7 +30,7 @@ class Editor
   # ===========================================================================
 
   setupLayerManager: ->
-    @layerManager = new LayerManager()
+    @layerManager = new LayerManager(this)
 
 
   # ===========================================================================
@@ -51,15 +51,14 @@ class Editor
     if toolName == "Select"
 
     else if toolName == "Point"
-      canvas.drawPoint(new Geo.Point(0, 0))
+      Render.drawPoint(canvas, new Geo.Point(0, 0))
 
     else if toolName == "LineSegment"
       p1 = new Geo.Point(-10, -10)
       p2 = new Geo.Point(10, 10)
-      l = new Geo.Line(p1, p2)
-      canvas.drawPoint(p1)
-      canvas.drawPoint(p2)
-      canvas.drawLine(l)
+      Render.drawPoint(canvas, p1)
+      Render.drawPoint(canvas, p2)
+      Render.drawLine(canvas, p1, p2)
 
   palettePointerDown: (e) =>
     toolEl = e.target.closest(".palette-tool")
@@ -95,7 +94,7 @@ class Editor
 
   resize: =>
     @canvas.setupSize()
-    @draw()
+    @refresh()
 
   workspacePosition: (e) ->
     pointerPosition = new Geo.Point(e.clientX, e.clientY)
@@ -104,32 +103,25 @@ class Editor
   canvasPointerDown: (e) =>
     e.preventDefault()
     @tool.pointerDown(e)
-    @draw()
+    @refresh()
 
   canvasPointerMove: (e) =>
     @tool.pointerMove(e)
-    @draw()
+    @refresh()
 
   canvasPointerUp: (e) =>
     @tool.pointerUp(e)
-    @draw()
+    @refresh()
 
   canvasPointerLeave: (e) =>
     @tool.pointerLeave(e)
-    @draw()
+    @refresh()
 
 
-  draw: ->
-    # @canvas.clear()
-    # # @canvas.drawAxes()
-
-    # refs = @model.refs()
-    # for ref in refs
-    #   object = ref.evaluate()
-    #   @canvas.drawObject(object)
+  refresh: ->
     Render.render(@canvas, this)
 
-    @layerManager.writeModelToDOM(@model)
+    @layerManager.writeToDOM()
 
 
   refsNearPointer: (e) ->

@@ -56,27 +56,16 @@ Render.drawRotationWreath = (canvas, center, n, opts={}) ->
   center = canvas.workspaceToCanvas(center)
   ctx = canvas.ctx
 
+  color = "purple"
+
   ctx.save()
 
   ctx.beginPath()
-  ctx.arc(center.x, center.y, 8, 0, Math.PI*2)
-  ctx.globalAlpha = 1
-  ctx.fillStyle = "#fff"
+  ctx.arc(center.x, center.y, 2.5, 0, Math.PI*2)
+  ctx.fillStyle = color
   ctx.fill()
 
-  ctx.beginPath()
-  ctx.arc(center.x, center.y, 8, 0, Math.PI*2)
-  ctx.globalAlpha = 0.25
-  ctx.fillStyle = "#00c"
-  ctx.fill()
-
-  ctx.beginPath()
-  ctx.moveTo(center.x, center.y)
-  ctx.lineTo(center.x + 8, center.y)
-  ctx.arc(center.x, center.y, 8, 0, -Math.PI*2 / n)
-  ctx.lineTo(center.x, center.y)
-  ctx.globalAlpha = 1
-  ctx.fillStyle = "#00c"
-  ctx.fill()
+  ctx.font = "10px monaco"
+  ctx.fillText(n, center.x + 4, center.y - 4)
 
   ctx.restore()

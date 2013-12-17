@@ -49,6 +49,7 @@ class EditorTool.Point
     @provisionalPoint = null
 
 
+
 class EditorTool.LineSegment
   constructor: (@editor) ->
     @lastRef = null
@@ -61,7 +62,7 @@ class EditorTool.LineSegment
       @provisionalPoint = new Model.Point(new Geo.Point(0, 0))
       @editor.contextWreath.objects.push(@provisionalPoint)
       if @lastRef
-        # TODO
+        # TODO contextWreath should really be a Ref so that the following path can be correct.
         path = new Ref.Path([wreath: @editor.contextWreath, op: 0])
         start = @lastRef
         end = new Ref(path, @provisionalPoint)
@@ -108,3 +109,30 @@ class EditorTool.LineSegment
       return snapRefs[0]
     else
       return null
+
+
+
+# class EditorTool.RotationWreath
+#   constructor: (@editor) ->
+#     @provisionalPoint = null
+#     @provisionalRotationWreath = null
+
+#   pointerDown: (e) ->
+
+#   pointerMove: (e) ->
+#     if !@provisionalPoint
+#       @provisionalPoint = new Model.Point(new Geo.Point(0, 0))
+#       @editor.contextWreath.objects.push(@provisionalPoint)
+#       @provisionalRotationWreath = new Model.RotationWreath()
+
+#     workspacePosition = @editor.workspacePosition(e)
+#     @provisionalPoint.point = workspacePosition
+
+#   pointerUp: (e) ->
+#     return unless @provisionalPoint
+#     @provisionalPoint = null
+
+#   pointerLeave: (e) ->
+#     return unless @provisionalPoint
+#     @editor.removeObject(@provisionalPoint)
+#     @provisionalPoint = null

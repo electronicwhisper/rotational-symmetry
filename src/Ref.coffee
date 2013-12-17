@@ -14,6 +14,7 @@ wreath.)
 
 class Ref
   constructor: (@path, @object) ->
+
   evaluate: ->
     if @object instanceof Model.Point
       point = @object.point
@@ -23,12 +24,22 @@ class Ref
       end = @path.localToGlobal(@object.end.evaluate())
       return new Geo.Line(start, end)
 
+  isEqual: (otherRef) ->
+    return @path.isEqual(otherRef.path) && @object == otherRef.object
+
 
 class Ref.Path
   constructor: (@steps=[]) ->
 
   prepend: (step) ->
     return new Ref.Path([step].concat(@steps))
+
+  isEqual: (otherPath) ->
+    for step, i in @steps
+      otherStep = otherPath.steps[i]
+      unless step.wreath == otherStep.wreath && step.op ==otherStep.op
+        return false
+    return true
 
   globalToLocal: (point) ->
     for step in @steps

@@ -14,6 +14,16 @@
 
   })();
 
+  /*
+  
+  A Canvas manages the quirks of the browser canvas element. It also keeps track
+  of the pan/zoom of the canvas by providing methods to convert from coordinate
+  spaces.
+  
+  TODO: Move hit testing into Render.
+  */
+
+
   Canvas = (function() {
     function Canvas(el) {
       this.el = el;
@@ -86,34 +96,6 @@
       return this.ctx.stroke();
     };
 
-    Canvas.prototype.drawObject = function(object) {
-      if (object instanceof Geo.Point) {
-        return this.drawPoint(object);
-      } else if (object instanceof Geo.Line) {
-        return this.drawLine(object);
-      }
-    };
-
-    Canvas.prototype.drawPoint = function(point) {
-      point = this.workspaceToCanvas(point);
-      this.ctx.beginPath();
-      this.ctx.arc(point.x, point.y, 2.5, 0, Math.PI * 2);
-      this.ctx.fillStyle = "#333";
-      return this.ctx.fill();
-    };
-
-    Canvas.prototype.drawLine = function(line) {
-      var end, start;
-      start = this.workspaceToCanvas(line.start);
-      end = this.workspaceToCanvas(line.end);
-      this.ctx.beginPath();
-      this.ctx.moveTo(start.x, start.y);
-      this.ctx.lineTo(end.x, end.y);
-      this.ctx.strokeStyle = "#000";
-      this.ctx.lineWidth = 0.6;
-      return this.ctx.stroke();
-    };
-
     Canvas.prototype.isObjectNearPoint = function(object, canvasPoint) {
       if (object instanceof Geo.Point) {
         return this.isPointNearPoint(object, canvasPoint);
@@ -172,7 +154,7 @@
     };
 
     Editor.prototype.setupLayerManager = function() {
-      return this.layerManager = new LayerManager();
+      return this.layerManager = new LayerManager(this);
     };
 
     Editor.prototype.setupPalette = function() {
@@ -189,19 +171,18 @@
     };
 
     Editor.prototype.drawPaletteTool = function(toolName, canvasEl) {
-      var canvas, l, p1, p2;
+      var canvas, p1, p2;
       canvas = new Canvas(canvasEl);
       if (toolName === "Select") {
 
       } else if (toolName === "Point") {
-        return canvas.drawPoint(new Geo.Point(0, 0));
+        return Render.drawPoint(canvas, new Geo.Point(0, 0));
       } else if (toolName === "LineSegment") {
         p1 = new Geo.Point(-10, -10);
         p2 = new Geo.Point(10, 10);
-        l = new Geo.Line(p1, p2);
-        canvas.drawPoint(p1);
-        canvas.drawPoint(p2);
-        return canvas.drawLine(l);
+        Render.drawPoint(canvas, p1);
+        Render.drawPoint(canvas, p2);
+        return Render.drawLine(canvas, p1, p2);
       }
     };
 
@@ -243,7 +224,7 @@
 
     Editor.prototype.resize = function() {
       this.canvas.setupSize();
-      return this.draw();
+      return this.refresh();
     };
 
     Editor.prototype.workspacePosition = function(e) {
@@ -255,27 +236,27 @@
     Editor.prototype.canvasPointerDown = function(e) {
       e.preventDefault();
       this.tool.pointerDown(e);
-      return this.draw();
+      return this.refresh();
     };
 
     Editor.prototype.canvasPointerMove = function(e) {
       this.tool.pointerMove(e);
-      return this.draw();
+      return this.refresh();
     };
 
     Editor.prototype.canvasPointerUp = function(e) {
       this.tool.pointerUp(e);
-      return this.draw();
+      return this.refresh();
     };
 
     Editor.prototype.canvasPointerLeave = function(e) {
       this.tool.pointerLeave(e);
-      return this.draw();
+      return this.refresh();
     };
 
-    Editor.prototype.draw = function() {
+    Editor.prototype.refresh = function() {
       Render.render(this.canvas, this);
-      return this.layerManager.writeModelToDOM(this.model);
+      return this.layerManager.writeToDOM();
     };
 
     Editor.prototype.refsNearPointer = function(e) {
@@ -522,22 +503,52 @@
   })();
 
   LayerManager = (function() {
-    function LayerManager() {
+    function LayerManager(editor) {
+      this.editor = editor;
+      this.pointerdown = __bind(this.pointerdown, this);
       this.layersEl = document.querySelector("#layers");
+      this.domToModel_ = new WeakMap();
+      this.modelToDom_ = new WeakMap();
+      this.layersEl.addEventListener("pointerdown", this.pointerdown);
     }
 
-    LayerManager.prototype.writeModelToDOM = function(model) {
-      var els;
-      this.layersEl.innerHTML = "";
-      els = this.childrenToEls(model);
-      return this.layersEl.appendChild(els);
+    LayerManager.prototype.reset = function() {
+      this.domToModel_ = new WeakMap();
+      this.modelToDom_ = new WeakMap();
+      return this.layersEl.innerHTML = "";
+    };
+
+    LayerManager.prototype.pointerdown = function(e) {
+      var object, target;
+      target = e.target;
+      while (!(object = this.domToModel_.get(target))) {
+        target = target.parentNode;
+      }
+      if (object instanceof Model.Wreath) {
+        this.editor.contextWreath = object;
+        return this.editor.refresh();
+      }
+    };
+
+    LayerManager.prototype.writeToDOM = function() {
+      var contextEl, contextWreath, model, rootEl;
+      this.reset();
+      model = this.editor.model;
+      contextWreath = this.editor.contextWreath;
+      rootEl = this.objectToEl(model);
+      this.layersEl.appendChild(rootEl);
+      contextEl = this.modelToDom_.get(contextWreath);
+      return contextEl.classList.add("context");
     };
 
     LayerManager.prototype.objectToEl = function(object) {
       var el, html;
       html = "<div class=\"layer\">\n  <div class=\"layer-main\">" + object.name + "</div>\n  <div class=\"layer-children\"></div>\n</div>";
       el = makeElFromHTML(html);
-      return el.querySelector(".layer-children").appendChild(this.childrenToEls(object));
+      el.querySelector(".layer-children").appendChild(this.childrenToEls(object));
+      this.domToModel_.set(el, object);
+      this.modelToDom_.set(object, el);
+      return el;
     };
 
     LayerManager.prototype.childrenToEls = function(object) {
@@ -740,6 +751,10 @@
       }
     };
 
+    Ref.prototype.isEqual = function(otherRef) {
+      return this.path.isEqual(otherRef.path) && this.object === otherRef.object;
+    };
+
     return Ref;
 
   })();
@@ -751,6 +766,19 @@
 
     Path.prototype.prepend = function(step) {
       return new Ref.Path([step].concat(this.steps));
+    };
+
+    Path.prototype.isEqual = function(otherPath) {
+      var i, otherStep, step, _i, _len, _ref;
+      _ref = this.steps;
+      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+        step = _ref[i];
+        otherStep = otherPath.steps[i];
+        if (!(step.wreath === otherStep.wreath && step.op === otherStep.op)) {
+          return false;
+        }
+      }
+      return true;
     };
 
     Path.prototype.globalToLocal = function(point) {
@@ -842,31 +870,20 @@
   };
 
   Render.drawRotationWreath = function(canvas, center, n, opts) {
-    var ctx;
+    var color, ctx;
     if (opts == null) {
       opts = {};
     }
     center = canvas.workspaceToCanvas(center);
     ctx = canvas.ctx;
+    color = "purple";
     ctx.save();
     ctx.beginPath();
-    ctx.arc(center.x, center.y, 8, 0, Math.PI * 2);
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = "#fff";
+    ctx.arc(center.x, center.y, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = color;
     ctx.fill();
-    ctx.beginPath();
-    ctx.arc(center.x, center.y, 8, 0, Math.PI * 2);
-    ctx.globalAlpha = 0.25;
-    ctx.fillStyle = "#00c";
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(center.x, center.y);
-    ctx.lineTo(center.x + 8, center.y);
-    ctx.arc(center.x, center.y, 8, 0, -Math.PI * 2 / n);
-    ctx.lineTo(center.x, center.y);
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = "#00c";
-    ctx.fill();
+    ctx.font = "10px monaco";
+    ctx.fillText(n, center.x + 4, center.y - 4);
     return ctx.restore();
   };
 

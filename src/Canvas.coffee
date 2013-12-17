@@ -1,3 +1,13 @@
+###
+
+A Canvas manages the quirks of the browser canvas element. It also keeps track
+of the pan/zoom of the canvas by providing methods to convert from coordinate
+spaces.
+
+TODO: Move hit testing into Render.
+
+###
+
 class Canvas
   constructor: (@el) ->
     @ctx = @el.getContext("2d")
@@ -62,34 +72,6 @@ class Canvas
     @ctx.beginPath()
     @ctx.moveTo(0, @height()/2)
     @ctx.lineTo(@width(), @height()/2)
-    @ctx.stroke()
-
-
-  # ===========================================================================
-  # Drawing Geo Objects
-  # ===========================================================================
-
-  drawObject: (object) ->
-    if object instanceof Geo.Point
-      @drawPoint(object)
-    else if object instanceof Geo.Line
-      @drawLine(object)
-
-  drawPoint: (point) ->
-    point = @workspaceToCanvas(point)
-    @ctx.beginPath()
-    @ctx.arc(point.x, point.y, 2.5, 0, Math.PI*2)
-    @ctx.fillStyle = "#333"
-    @ctx.fill()
-
-  drawLine: (line) ->
-    start = @workspaceToCanvas(line.start)
-    end = @workspaceToCanvas(line.end)
-    @ctx.beginPath()
-    @ctx.moveTo(start.x, start.y)
-    @ctx.lineTo(end.x, end.y)
-    @ctx.strokeStyle = "#000"
-    @ctx.lineWidth = 0.6
     @ctx.stroke()
 
 

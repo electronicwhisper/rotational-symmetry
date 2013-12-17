@@ -1,5 +1,3 @@
-Renderer
-Choose context to put things down in layer manager
 Get rid of points in model
 Point merging
 
