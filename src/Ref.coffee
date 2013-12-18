@@ -16,13 +16,9 @@ class Ref
   constructor: (@path, @object) ->
 
   evaluate: ->
-    if @object instanceof Model.Point
-      point = @object.point
-      return @path.localToGlobal(point)
-    else if @object instanceof Model.Line
-      start = @path.localToGlobal(@object.start.evaluate())
-      end = @path.localToGlobal(@object.end.evaluate())
-      return new Geo.Line(start, end)
+    throw "Called evaluate on a non-point Ref" unless @object instanceof Model.Point
+    point = @object.point
+    return @path.localToGlobal(point)
 
   isEqual: (otherRef) ->
     return @path.isEqual(otherRef.path) && @object == otherRef.object

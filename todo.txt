@@ -1,5 +1,8 @@
 
-Get rid of points in model
+
+Make line be able to just have a start (solve multiple lines problem)
+
+
 Point merging
 
 Make hover/selected

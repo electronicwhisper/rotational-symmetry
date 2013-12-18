@@ -14,7 +14,7 @@ class Editor
   # ===========================================================================
 
   setupModel: ->
-    @model = new Model.IdentityWreath()
+    @model = new Model.Wreath()
     center = new Model.Point(new Geo.Point(0, 0))
     # @model.objects.push(center)
 
@@ -23,6 +23,8 @@ class Editor
     @model.objects.push(rotation)
 
     @contextWreath = rotation
+
+    window.model = @model
 
 
   # ===========================================================================
@@ -135,9 +137,46 @@ class Editor
     return result
 
 
+  findSnapRef: (e, excludePoints=[]) ->
+    snapRefs = @refsNearPointer(e)
+    snapRefs = _.reject snapRefs, (snapRef) =>
+      _.contains(excludePoints, snapRef.object)
+    if snapRefs.length > 0
+      return snapRefs[0]
+    else
+      return null
+
+
+
   mergePointRefs: (pointRefs...) ->
-    point = pointRefs[0].evaluate
-    # Iterate through model. Any Ref to a Model.Point equal to one of the pointRefs' objects needs to change.
+    pointLocation = pointRefs[0].evaluate()
+    mergedPoint = new Model.Point(pointLocation)
+
+    objects = []
+    findObjects = (object) ->
+      objects.push(object)
+      for childObject in object.children
+        findObjects(object)
+    findObjects(@model)
+
+    for object in objects
+      modelPointRefs = object.points()
+
+      for modelPointRef in modelPointRefs
+        matchesPointRef = _.find pointRefs, (pointRef) ->
+          pointRef.object == modelPointRef.object
+        if matchesPointRef
+          # Need to mutate modelPointRef
+          steps = matchesPointRef.path.steps
+          steps = steps.slice().reverse()
+          steps = _.map steps, (step) ->
+            {
+              wreath: step.wreath
+              op: step.wreath.inverse(step.op)
+            }
+          modelPointRef.object = mergedPoint
+          modelPointRef.path = new Ref.Path(steps)
+
 
   removeObject: (object) ->
     removeObjectFromWreath = (object, wreath) ->
@@ -150,13 +189,6 @@ class Editor
 
   movePointRef: (pointRef, workspacePosition) ->
 
-  findSnapRef: (e, excludePoints=[]) ->
-    snapRefs = @refsNearPointer(e)
-    snapRefs = _.reject snapRefs, (snapRef) =>
-      _.contains(excludePoints, snapRef.object)
-    if snapRefs.length > 0
-      return snapRefs[0]
-    else
-      return null
+
 
 

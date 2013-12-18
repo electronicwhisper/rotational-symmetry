@@ -84,19 +84,6 @@
       return this.ctx.clearRect(0, 0, this.width(), this.height());
     };
 
-    Canvas.prototype.drawAxes = function() {
-      this.ctx.beginPath();
-      this.ctx.moveTo(this.width() / 2, 0);
-      this.ctx.lineTo(this.width() / 2, this.height());
-      this.ctx.strokeStyle = "#ccc";
-      this.ctx.lineWidth = 1;
-      this.ctx.stroke();
-      this.ctx.beginPath();
-      this.ctx.moveTo(0, this.height() / 2);
-      this.ctx.lineTo(this.width(), this.height() / 2);
-      return this.ctx.stroke();
-    };
-
     Canvas.prototype.isObjectNearPoint = function(object, canvasPoint) {
       if (object instanceof Geo.Point) {
         return this.isPointNearPoint(object, canvasPoint);
@@ -140,7 +127,7 @@
 
     Editor.prototype.setupModel = function() {
       var center, centerRef, rotation;
-      this.model = new Model.IdentityWreath();
+      this.model = new Model.Wreath();
       center = new Model.Point(new Geo.Point(0, 0));
       centerRef = new Ref(new Ref.Path([
         {
@@ -150,7 +137,8 @@
       ]), center);
       rotation = new Model.RotationWreath(centerRef, 12);
       this.model.objects.push(rotation);
-      return this.contextWreath = rotation;
+      this.contextWreath = rotation;
+      return window.model = this.model;
     };
 
     Editor.prototype.setupLayerManager = function() {
@@ -274,10 +262,72 @@
       return result;
     };
 
+    Editor.prototype.findSnapRef = function(e, excludePoints) {
+      var snapRefs,
+        _this = this;
+      if (excludePoints == null) {
+        excludePoints = [];
+      }
+      snapRefs = this.refsNearPointer(e);
+      snapRefs = _.reject(snapRefs, function(snapRef) {
+        return _.contains(excludePoints, snapRef.object);
+      });
+      if (snapRefs.length > 0) {
+        return snapRefs[0];
+      } else {
+        return null;
+      }
+    };
+
     Editor.prototype.mergePointRefs = function() {
-      var point, pointRefs;
+      var findObjects, matchesPointRef, mergedPoint, modelPointRef, modelPointRefs, object, objects, pointLocation, pointRefs, steps, _i, _len, _results;
       pointRefs = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-      return point = pointRefs[0].evaluate;
+      pointLocation = pointRefs[0].evaluate();
+      mergedPoint = new Model.Point(pointLocation);
+      objects = [];
+      findObjects = function(object) {
+        var childObject, _i, _len, _ref, _results;
+        objects.push(object);
+        _ref = object.children;
+        _results = [];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          childObject = _ref[_i];
+          _results.push(findObjects(object));
+        }
+        return _results;
+      };
+      findObjects(this.model);
+      _results = [];
+      for (_i = 0, _len = objects.length; _i < _len; _i++) {
+        object = objects[_i];
+        modelPointRefs = object.points();
+        _results.push((function() {
+          var _j, _len1, _results1;
+          _results1 = [];
+          for (_j = 0, _len1 = modelPointRefs.length; _j < _len1; _j++) {
+            modelPointRef = modelPointRefs[_j];
+            matchesPointRef = _.find(pointRefs, function(pointRef) {
+              return pointRef.object === modelPointRef.object;
+            });
+            if (matchesPointRef) {
+              steps = matchesPointRef.path.steps;
+              steps = steps.slice().reverse();
+              steps = _.map(steps, function(step) {
+                return {
+                  wreath: step.wreath,
+                  op: step.wreath.inverse(step.op)
+                };
+              });
+              modelPointRef.object = mergedPoint;
+              _results1.push(modelPointRef.path = new Ref.Path(steps));
+            } else {
+              _results1.push(void 0);
+            }
+          }
+          return _results1;
+        })());
+      }
+      return _results;
     };
 
     Editor.prototype.removeObject = function(object) {
@@ -301,23 +351,6 @@
     };
 
     Editor.prototype.movePointRef = function(pointRef, workspacePosition) {};
-
-    Editor.prototype.findSnapRef = function(e, excludePoints) {
-      var snapRefs,
-        _this = this;
-      if (excludePoints == null) {
-        excludePoints = [];
-      }
-      snapRefs = this.refsNearPointer(e);
-      snapRefs = _.reject(snapRefs, function(snapRef) {
-        return _.contains(excludePoints, snapRef.object);
-      });
-      if (snapRefs.length > 0) {
-        return snapRefs[0];
-      } else {
-        return null;
-      }
-    };
 
     return Editor;
 
@@ -523,9 +556,36 @@
 
   })();
 
+  /*
+  
+  Things we want to recurse:
+    All the objects (descendants)
+    All the refs to objects (e.g. exponentiating it out)
+  */
+
+
   Model = {};
 
-  Model.Point = (function() {
+  Model.Base = (function() {
+    function Base() {}
+
+    Base.prototype.name = "";
+
+    Base.prototype.points = function() {
+      return [];
+    };
+
+    Base.prototype.children = function() {
+      return [];
+    };
+
+    return Base;
+
+  })();
+
+  Model.Point = (function(_super) {
+    __extends(Point, _super);
+
     Point.prototype.name = "Point";
 
     function Point(point) {
@@ -534,10 +594,16 @@
 
     return Point;
 
-  })();
+  })(Model.Base);
 
-  Model.Line = (function() {
+  Model.Line = (function(_super) {
+    __extends(Line, _super);
+
     Line.prototype.name = "Line";
+
+    Line.prototype.points = function() {
+      return [this.start, this.end];
+    };
 
     function Line(start, end) {
       this.start = start;
@@ -546,23 +612,31 @@
 
     return Line;
 
-  })();
+  })(Model.Base);
 
-  Model.Wreath = (function() {
+  Model.Wreath = (function(_super) {
+    __extends(Wreath, _super);
+
+    Wreath.prototype.name = "Group";
+
+    Wreath.prototype.children = function() {
+      return this.objects;
+    };
+
     function Wreath() {
       this.objects = [];
     }
 
     Wreath.prototype.ops = function() {
-      throw new Error("Not implemented.");
+      return [0];
     };
 
     Wreath.prototype.inverse = function(op) {
-      throw new Error("Not implemented.");
+      return op;
     };
 
     Wreath.prototype.perform = function(op, point) {
-      throw new Error("Not implemented.");
+      return point;
     };
 
     Wreath.prototype.refs = function() {
@@ -600,7 +674,7 @@
     };
 
     Wreath.prototype.pointRefs = function() {
-      var add, ref, result, _i, _len, _ref;
+      var add, pointRef, ref, result, _i, _j, _len, _len1, _ref, _ref1;
       result = [];
       add = function(ref, pointRef) {
         var existingRef, path, _i, _len;
@@ -617,11 +691,10 @@
       _ref = this.refs();
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         ref = _ref[_i];
-        if (ref.object instanceof Model.Line) {
-          add(ref, ref.object.start);
-          add(ref, ref.object.end);
-        } else if (ref.object instanceof Model.RotationWreath) {
-          add(ref, ref.object.center);
+        _ref1 = ref.object.points();
+        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+          pointRef = _ref1[_j];
+          add(ref, pointRef);
         }
       }
       return result;
@@ -629,37 +702,16 @@
 
     return Wreath;
 
-  })();
-
-  Model.IdentityWreath = (function(_super) {
-    __extends(IdentityWreath, _super);
-
-    IdentityWreath.prototype.name = "Group";
-
-    function IdentityWreath() {
-      IdentityWreath.__super__.constructor.call(this);
-    }
-
-    IdentityWreath.prototype.ops = function() {
-      return [0];
-    };
-
-    IdentityWreath.prototype.inverse = function(op) {
-      return op;
-    };
-
-    IdentityWreath.prototype.perform = function(op, point) {
-      return point;
-    };
-
-    return IdentityWreath;
-
-  })(Model.Wreath);
+  })(Model.Base);
 
   Model.RotationWreath = (function(_super) {
     __extends(RotationWreath, _super);
 
     RotationWreath.prototype.name = "Rotation Group";
+
+    RotationWreath.prototype.points = function() {
+      return [this.center];
+    };
 
     function RotationWreath(center, n) {
       this.center = center;
@@ -722,15 +774,12 @@
     }
 
     Ref.prototype.evaluate = function() {
-      var end, point, start;
-      if (this.object instanceof Model.Point) {
-        point = this.object.point;
-        return this.path.localToGlobal(point);
-      } else if (this.object instanceof Model.Line) {
-        start = this.path.localToGlobal(this.object.start.evaluate());
-        end = this.path.localToGlobal(this.object.end.evaluate());
-        return new Geo.Line(start, end);
+      var point;
+      if (!(this.object instanceof Model.Point)) {
+        throw "Called evaluate on a non-point Ref";
       }
+      point = this.object.point;
+      return this.path.localToGlobal(point);
     };
 
     Ref.prototype.isEqual = function(otherRef) {

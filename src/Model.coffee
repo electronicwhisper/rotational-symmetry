@@ -1,23 +1,44 @@
+###
+
+Things we want to recurse:
+  All the objects (descendants)
+  All the refs to objects (e.g. exponentiating it out)
+
+
+###
+
 Model = {}
 
 
-class Model.Point
+class Model.Base
+  name: ""
+  points: -> []
+  children: -> []
+
+
+class Model.Point extends Model.Base
   name: "Point"
+
   constructor: (@point) ->
 
 
-class Model.Line
+class Model.Line extends Model.Base
   name: "Line"
+  points: -> [@start, @end]
+
   constructor: (@start, @end) ->
 
 
-class Model.Wreath
+class Model.Wreath extends Model.Base
+  name: "Group"
+  children: -> @objects
+
   constructor: ->
     @objects = []
 
-  ops: -> throw new Error("Not implemented.")
-  inverse: (op) -> throw new Error("Not implemented.")
-  perform: (op, point) -> throw new Error("Not implemented.")
+  ops: -> [0]
+  inverse: (op) -> op
+  perform: (op, point) -> return point
 
   refs: ->
     result = []
@@ -47,30 +68,16 @@ class Model.Wreath
       result.push(ref)
 
     for ref in @refs()
-      if ref.object instanceof Model.Line
-        add(ref, ref.object.start)
-        add(ref, ref.object.end)
-      else if ref.object instanceof Model.RotationWreath
-        add(ref, ref.object.center)
+      for pointRef in ref.object.points()
+        add(ref, pointRef)
 
     return result
 
 
-class Model.IdentityWreath extends Model.Wreath
-  name: "Group"
-  constructor: ->
-    super()
-
-  ops: -> [0]
-
-  inverse: (op) -> op
-
-  perform: (op, point) ->
-    return point
-
-
 class Model.RotationWreath extends Model.Wreath
   name: "Rotation Group"
+  points: -> [@center]
+
   constructor: (@center, @n) ->
     super()
 

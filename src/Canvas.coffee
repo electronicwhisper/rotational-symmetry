@@ -62,18 +62,6 @@ class Canvas
   clear: ->
     @ctx.clearRect(0, 0, @width(), @height())
 
-  drawAxes: ->
-    @ctx.beginPath()
-    @ctx.moveTo(@width()/2, 0)
-    @ctx.lineTo(@width()/2, @height())
-    @ctx.strokeStyle = "#ccc"
-    @ctx.lineWidth = 1
-    @ctx.stroke()
-    @ctx.beginPath()
-    @ctx.moveTo(0, @height()/2)
-    @ctx.lineTo(@width(), @height()/2)
-    @ctx.stroke()
-
 
   # ===========================================================================
   # Hit Testing Geo Objects
