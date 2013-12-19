@@ -27,25 +27,16 @@ class EditorTool.Select
 
 class EditorTool.LineSegment
   constructor: (@editor) ->
+    @provisionalLine = null
     @previousPointRef = null
     @currentPointRef = null
-    @provisionalLine = null
 
-  pointerDown: (e) ->
+  makeNewCurrentPointRef: ->
+    point = new Model.Point(new Geo.Point(0, 0))
+    path = new Ref.Path([])
+    @currentPointRef = new Ref(path, point)
 
-  pointerMove: (e) ->
-    if !@currentPointRef
-      point = new Model.Point(new Geo.Point(0, 0))
-      path = new Ref.Path([])
-      @currentPointRef = new Ref(path, point)
-      if @previousPointRef
-        start = @previousPointRef
-      else
-        start = @currentPointRef
-      end = @currentPointRef
-      @provisionalLine = new Model.Line(start, end)
-      @editor.contextWreath.objects.push(@provisionalLine)
-
+  moveCurrentPointRef: (e) ->
     snapRef = @snapRef(e)
     if snapRef
       moveToPoint = snapRef.evaluate()
@@ -53,21 +44,42 @@ class EditorTool.LineSegment
       moveToPoint = @editor.workspacePosition(e)
     @currentPointRef.object.point = moveToPoint
 
+  pointerDown: (e) ->
+
+  pointerMove: (e) ->
+    if !@currentPointRef
+      @makeNewCurrentPointRef()
+      if @previousPointRef
+        start = @previousPointRef
+        end = @currentPointRef
+      else
+        start = @currentPointRef
+        end = null
+      @provisionalLine = new Model.Line(start, end)
+      @editor.contextWreath.objects.push(@provisionalLine)
+
+    @moveCurrentPointRef(e)
+
   pointerUp: (e) ->
     return unless @currentPointRef
     snapRef = @snapRef(e)
 
-    if snapRef
-      if @previousPointRef
+    if @previousPointRef
+      if snapRef
         @provisionalLine.end = snapRef
+        @currentPointRef = null
         @previousPointRef = null
+        @provisionalLine = null
       else
-        @previousPointRef = snapRef
+        @previousPointRef = @currentPointRef
+        @currentPointRef = null
+        @provisionalLine = null
     else
       @previousPointRef = @currentPointRef
-
-    @currentPointRef = null
-    @provisionalLine = null
+      @makeNewCurrentPointRef()
+      @moveCurrentPointRef(e)
+      @provisionalLine.start = snapRef ? @previousPointRef
+      @provisionalLine.end = @currentPointRef
 
   pointerLeave: (e) ->
     return unless @currentPointRef

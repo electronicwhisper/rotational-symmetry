@@ -15,9 +15,10 @@ Render.render = (canvas, editor) ->
       Render.drawPoint(canvas, point)
 
     else if object instanceof Model.Line
-      start = ref.path.localToGlobal(object.start.evaluate())
-      end = ref.path.localToGlobal(object.end.evaluate())
-      Render.drawLine(canvas, start, end)
+      if object.start? && object.end?
+        start = ref.path.localToGlobal(object.start.evaluate())
+        end = ref.path.localToGlobal(object.end.evaluate())
+        Render.drawLine(canvas, start, end)
 
     else if object instanceof Model.RotationWreath
       center = ref.path.localToGlobal(object.center.evaluate())

@@ -60,6 +60,7 @@ class Model.Wreath extends Model.Base
     result = []
 
     add = (ref, pointRef) ->
+      return unless pointRef?
       path = pointRef.path.prepend(ref.path)
       ref = new Ref(path, pointRef.object)
       for existingRef in result

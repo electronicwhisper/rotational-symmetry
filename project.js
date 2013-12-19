@@ -397,28 +397,20 @@
   EditorTool.LineSegment = (function() {
     function LineSegment(editor) {
       this.editor = editor;
+      this.provisionalLine = null;
       this.previousPointRef = null;
       this.currentPointRef = null;
-      this.provisionalLine = null;
     }
 
-    LineSegment.prototype.pointerDown = function(e) {};
+    LineSegment.prototype.makeNewCurrentPointRef = function() {
+      var path, point;
+      point = new Model.Point(new Geo.Point(0, 0));
+      path = new Ref.Path([]);
+      return this.currentPointRef = new Ref(path, point);
+    };
 
-    LineSegment.prototype.pointerMove = function(e) {
-      var end, moveToPoint, path, point, snapRef, start;
-      if (!this.currentPointRef) {
-        point = new Model.Point(new Geo.Point(0, 0));
-        path = new Ref.Path([]);
-        this.currentPointRef = new Ref(path, point);
-        if (this.previousPointRef) {
-          start = this.previousPointRef;
-        } else {
-          start = this.currentPointRef;
-        }
-        end = this.currentPointRef;
-        this.provisionalLine = new Model.Line(start, end);
-        this.editor.contextWreath.objects.push(this.provisionalLine);
-      }
+    LineSegment.prototype.moveCurrentPointRef = function(e) {
+      var moveToPoint, snapRef;
       snapRef = this.snapRef(e);
       if (snapRef) {
         moveToPoint = snapRef.evaluate();
@@ -428,24 +420,49 @@
       return this.currentPointRef.object.point = moveToPoint;
     };
 
+    LineSegment.prototype.pointerDown = function(e) {};
+
+    LineSegment.prototype.pointerMove = function(e) {
+      var end, start;
+      if (!this.currentPointRef) {
+        this.makeNewCurrentPointRef();
+        if (this.previousPointRef) {
+          start = this.previousPointRef;
+          end = this.currentPointRef;
+        } else {
+          start = this.currentPointRef;
+          end = null;
+        }
+        this.provisionalLine = new Model.Line(start, end);
+        this.editor.contextWreath.objects.push(this.provisionalLine);
+      }
+      return this.moveCurrentPointRef(e);
+    };
+
     LineSegment.prototype.pointerUp = function(e) {
       var snapRef;
       if (!this.currentPointRef) {
         return;
       }
       snapRef = this.snapRef(e);
-      if (snapRef) {
-        if (this.previousPointRef) {
+      if (this.previousPointRef) {
+        if (snapRef) {
           this.provisionalLine.end = snapRef;
+          this.currentPointRef = null;
           this.previousPointRef = null;
+          return this.provisionalLine = null;
         } else {
-          this.previousPointRef = snapRef;
+          this.previousPointRef = this.currentPointRef;
+          this.currentPointRef = null;
+          return this.provisionalLine = null;
         }
       } else {
         this.previousPointRef = this.currentPointRef;
+        this.makeNewCurrentPointRef();
+        this.moveCurrentPointRef(e);
+        this.provisionalLine.start = snapRef != null ? snapRef : this.previousPointRef;
+        return this.provisionalLine.end = this.currentPointRef;
       }
-      this.currentPointRef = null;
-      return this.provisionalLine = null;
     };
 
     LineSegment.prototype.pointerLeave = function(e) {
@@ -678,6 +695,9 @@
       result = [];
       add = function(ref, pointRef) {
         var existingRef, path, _i, _len;
+        if (pointRef == null) {
+          return;
+        }
         path = pointRef.path.prepend(ref.path);
         ref = new Ref(path, pointRef.object);
         for (_i = 0, _len = result.length; _i < _len; _i++) {
@@ -866,9 +886,11 @@
         point = ref.evaluate();
         Render.drawPoint(canvas, point);
       } else if (object instanceof Model.Line) {
-        start = ref.path.localToGlobal(object.start.evaluate());
-        end = ref.path.localToGlobal(object.end.evaluate());
-        Render.drawLine(canvas, start, end);
+        if ((object.start != null) && (object.end != null)) {
+          start = ref.path.localToGlobal(object.start.evaluate());
+          end = ref.path.localToGlobal(object.end.evaluate());
+          Render.drawLine(canvas, start, end);
+        }
       } else if (object instanceof Model.RotationWreath) {
         center = ref.path.localToGlobal(object.center.evaluate());
         Render.drawRotationWreath(canvas, center, object.n);
