@@ -32,12 +32,28 @@ class Ref.Path
         console.error("bad path", @steps)
 
   prepend: (steps) ->
-    if steps instanceof Ref.Path
-      steps = steps.steps
-    else if !_.isArray(steps)
-      steps = [steps]
-
+    steps = @flexiblyConvertSteps_(steps)
     return new Ref.Path(steps.concat(@steps))
+
+  append: (steps) ->
+    steps = @flexiblyConvertSteps_(steps)
+    return new Ref.Path(@steps.concat(steps))
+
+  flexiblyConvertSteps_: (steps) ->
+    # Given a Ref.Path or a single step, return steps as an array
+    if steps instanceof Ref.Path
+      return steps.steps
+    else if !_.isArray(steps)
+      return [steps]
+
+  inverse: ->
+    steps = @steps.slice().reverse()
+    steps = _.map steps, (step) ->
+      {
+        wreath: step.wreath
+        op: step.wreath.inverse(step.op)
+      }
+    return new Ref.Path(steps)
 
   isEqual: (otherPath) ->
     for step, i in @steps

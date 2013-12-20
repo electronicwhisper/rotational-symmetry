@@ -2,7 +2,6 @@
 (function() {
   var App, Canvas, Editor, EditorTool, Geo, LayerManager, Model, Ref, Render, makeElFromHTML, _base, _ref, _ref1,
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
-    __slice = [].slice,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -279,20 +278,19 @@
       }
     };
 
-    Editor.prototype.mergePointRefs = function() {
-      var findObjects, matchesPointRef, mergedPoint, modelPointRef, modelPointRefs, object, objects, pointLocation, pointRefs, steps, _i, _len, _results;
-      pointRefs = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-      pointLocation = pointRefs[0].evaluate();
-      mergedPoint = new Model.Point(pointLocation);
+    Editor.prototype.mergePointRefs = function(anchorPointRef, pointRefToMerge) {
+      var findObjects, modelPointRef, modelPointRefs, object, objectToMerge, objects, pathToAppend, _i, _len, _results;
+      objectToMerge = pointRefToMerge.object;
+      pathToAppend = pointRefToMerge.path.inverse().append(anchorPointRef.path);
       objects = [];
       findObjects = function(object) {
         var childObject, _i, _len, _ref, _results;
         objects.push(object);
-        _ref = object.children;
+        _ref = object.children();
         _results = [];
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           childObject = _ref[_i];
-          _results.push(findObjects(object));
+          _results.push(findObjects(childObject));
         }
         return _results;
       };
@@ -306,20 +304,9 @@
           _results1 = [];
           for (_j = 0, _len1 = modelPointRefs.length; _j < _len1; _j++) {
             modelPointRef = modelPointRefs[_j];
-            matchesPointRef = _.find(pointRefs, function(pointRef) {
-              return pointRef.object === modelPointRef.object;
-            });
-            if (matchesPointRef) {
-              steps = matchesPointRef.path.steps;
-              steps = steps.slice().reverse();
-              steps = _.map(steps, function(step) {
-                return {
-                  wreath: step.wreath,
-                  op: step.wreath.inverse(step.op)
-                };
-              });
-              modelPointRef.object = mergedPoint;
-              _results1.push(modelPointRef.path = new Ref.Path(steps));
+            if (modelPointRef.object === objectToMerge) {
+              modelPointRef.object = anchorPointRef.object;
+              _results1.push(modelPointRef.path = modelPointRef.path.append(pathToAppend));
             } else {
               _results1.push(void 0);
             }
@@ -375,20 +362,33 @@
     };
 
     Select.prototype.pointerMove = function(e) {
-      var localPoint, workspacePosition;
+      var moveToPoint, snapRef;
       if (!this.selectedRef) {
         return;
       }
-      workspacePosition = this.editor.workspacePosition(e);
-      localPoint = this.selectedRef.path.globalToLocal(workspacePosition);
-      return this.selectedRef.object.point = localPoint;
+      snapRef = this.snapRef(e);
+      if (snapRef) {
+        moveToPoint = snapRef.evaluate();
+      } else {
+        moveToPoint = this.editor.workspacePosition(e);
+      }
+      return this.selectedRef.object.point = this.selectedRef.path.globalToLocal(moveToPoint);
     };
 
     Select.prototype.pointerUp = function(e) {
+      var snapRef;
+      snapRef = this.snapRef(e);
+      if (snapRef) {
+        this.editor.mergePointRefs(snapRef, this.selectedRef);
+      }
       return this.selectedRef = null;
     };
 
     Select.prototype.pointerLeave = function(e) {};
+
+    Select.prototype.snapRef = function(e) {
+      return this.editor.findSnapRef(e, [this.selectedRef.object]);
+    };
 
     return Select;
 
@@ -824,12 +824,33 @@
     }
 
     Path.prototype.prepend = function(steps) {
-      if (steps instanceof Ref.Path) {
-        steps = steps.steps;
-      } else if (!_.isArray(steps)) {
-        steps = [steps];
-      }
+      steps = this.flexiblyConvertSteps_(steps);
       return new Ref.Path(steps.concat(this.steps));
+    };
+
+    Path.prototype.append = function(steps) {
+      steps = this.flexiblyConvertSteps_(steps);
+      return new Ref.Path(this.steps.concat(steps));
+    };
+
+    Path.prototype.flexiblyConvertSteps_ = function(steps) {
+      if (steps instanceof Ref.Path) {
+        return steps.steps;
+      } else if (!_.isArray(steps)) {
+        return [steps];
+      }
+    };
+
+    Path.prototype.inverse = function() {
+      var steps;
+      steps = this.steps.slice().reverse();
+      steps = _.map(steps, function(step) {
+        return {
+          wreath: step.wreath,
+          op: step.wreath.inverse(step.op)
+        };
+      });
+      return new Ref.Path(steps);
     };
 
     Path.prototype.isEqual = function(otherPath) {

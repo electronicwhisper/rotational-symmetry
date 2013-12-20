@@ -148,34 +148,39 @@ class Editor
 
 
 
-  mergePointRefs: (pointRefs...) ->
-    pointLocation = pointRefs[0].evaluate()
-    mergedPoint = new Model.Point(pointLocation)
 
+  mergePointRefs: (anchorPointRef, pointRefToMerge) ->
+    # TODO: There's still a bug in that you shouldn't be allowed to merge a
+    # point onto a point that it "depends" on. E.g. You shouldn't be able to
+    # merge the center of a rotation wreath onto a point that is affected by
+    # the rotation wreath. You never want to end up with a pointRef which has
+    # in its path the point itself.
+
+    # TODO: With dragging you can sometimes end up dragging the pointRef
+    # "further" down the tree, rather than the one closest. E.g. If you drag a
+    # point to its rotation wreath's center, and then drag the center, you
+    # should drag the center, not the point...
+
+    objectToMerge = pointRefToMerge.object
+    pathToAppend = pointRefToMerge.path.inverse().append(anchorPointRef.path)
+
+    # TODO: This finding all descendant objects should be a method on the model
     objects = []
     findObjects = (object) ->
       objects.push(object)
-      for childObject in object.children
-        findObjects(object)
+      for childObject in object.children()
+        findObjects(childObject)
     findObjects(@model)
 
     for object in objects
       modelPointRefs = object.points()
-
       for modelPointRef in modelPointRefs
-        matchesPointRef = _.find pointRefs, (pointRef) ->
-          pointRef.object == modelPointRef.object
-        if matchesPointRef
-          # Need to mutate modelPointRef
-          steps = matchesPointRef.path.steps
-          steps = steps.slice().reverse()
-          steps = _.map steps, (step) ->
-            {
-              wreath: step.wreath
-              op: step.wreath.inverse(step.op)
-            }
-          modelPointRef.object = mergedPoint
-          modelPointRef.path = new Ref.Path(steps)
+        if modelPointRef.object == objectToMerge
+          # TODO: This is a mutation of modelPointRef, but cleaner would be to
+          # mutate object (maybe make this a method on a Model, to mutate its
+          # points so as to create a merge.)
+          modelPointRef.object = anchorPointRef.object
+          modelPointRef.path = modelPointRef.path.append(pathToAppend)
 
 
   removeObject: (object) ->

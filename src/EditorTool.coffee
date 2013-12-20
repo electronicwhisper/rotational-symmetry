@@ -14,14 +14,28 @@ class EditorTool.Select
 
   pointerMove: (e) ->
     return unless @selectedRef
-    workspacePosition = @editor.workspacePosition(e)
-    localPoint = @selectedRef.path.globalToLocal(workspacePosition)
-    @selectedRef.object.point = localPoint
+
+    snapRef = @snapRef(e)
+    if snapRef
+      moveToPoint = snapRef.evaluate()
+    else
+      moveToPoint = @editor.workspacePosition(e)
+    @selectedRef.object.point = @selectedRef.path.globalToLocal(moveToPoint)
+
+    # workspacePosition = @editor.workspacePosition(e)
+    # localPoint = @selectedRef.path.globalToLocal(workspacePosition)
+    # @selectedRef.object.point = localPoint
 
   pointerUp: (e) ->
+    snapRef = @snapRef(e)
+    if snapRef
+      @editor.mergePointRefs(snapRef, @selectedRef)
     @selectedRef = null
 
   pointerLeave: (e) ->
+
+  snapRef: (e) ->
+    @editor.findSnapRef(e, [@selectedRef.object])
 
 
 
