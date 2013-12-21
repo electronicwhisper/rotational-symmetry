@@ -59,6 +59,10 @@ class Editor
       Render.drawPoint(canvas, p2)
       Render.drawLine(canvas, p1, p2)
 
+    else if toolName == "RotationWreath"
+      p1 = new Geo.Point(0, 0)
+      Render.drawRotationWreath(canvas, p1, 12)
+
   palettePointerDown: (e) =>
     toolEl = e.target.closest(".palette-tool")
     return unless toolEl?

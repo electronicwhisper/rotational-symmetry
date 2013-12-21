@@ -106,83 +106,29 @@ class EditorTool.LineSegment
 
 
 
-# class EditorTool.LineSegment
-#   constructor: (@editor) ->
-#     @lastRef = null
-#     @provisionalPoint = null
-#     @provisionalLine = null
+class EditorTool.RotationWreath
+  constructor: (@editor) ->
+    @provisionalRotationWreath = null
 
-#   pointerDown: (e) ->
-#   pointerMove: (e) ->
-#     if !@provisionalPoint
-#       @provisionalPoint = new Model.Point(new Geo.Point(0, 0))
-#       @editor.contextWreath.objects.push(@provisionalPoint)
-#       if @lastRef
-#         # TODO contextWreath should really be a Ref so that the following path can be correct.
-#         path = new Ref.Path([wreath: @editor.contextWreath, op: 0])
-#         start = @lastRef
-#         end = new Ref(path, @provisionalPoint)
-#         @provisionalLine = new Model.Line(start, end)
-#         @editor.contextWreath.objects.push(@provisionalLine)
+  pointerDown: (e) ->
 
-#     # Snapping
-#     snapRef = @snapRef(e)
-#     if snapRef
-#       moveToPoint = snapRef.evaluate()
-#     else
-#       moveToPoint = @editor.workspacePosition(e)
-#     @provisionalPoint.point = moveToPoint
+  pointerMove: (e) ->
+    if !@provisionalRotationWreath
+      point = new Model.Point(new Geo.Point(0, 0))
+      path = new Ref.Path([])
+      pointRef = new Ref(path, point)
 
-#   pointerUp: (e) ->
-#     return unless @provisionalPoint
-#     snapRef = @snapRef(e)
-#     if snapRef
-#       if @provisionalLine
-#         @provisionalLine.end = snapRef
-#         @editor.removeObject(@provisionalPoint)
-#         @lastRef = null
-#       else
-#         @editor.removeObject(@provisionalPoint)
-#         @lastRef = snapRef
-#     else
-#       path = new Ref.Path([wreath: @editor.contextWreath, op: 0])
-#       @lastRef = new Ref(path, @provisionalPoint)
-#     @provisionalPoint = null
-#     @provisionalLine = null
+      @provisionalRotationWreath = new Model.RotationWreath(pointRef, 12)
+      @editor.contextWreath.objects.push(@provisionalRotationWreath)
 
-#   pointerLeave: (e) ->
-#     return unless @provisionalPoint
-#     @editor.removeObject(@provisionalPoint)
-#     @editor.removeObject(@provisionalLine) if @provisionalLine
-#     @provisionalPoint = null
-#     @provisionalLine = null
+    workspacePosition = @editor.workspacePosition(e)
+    @provisionalRotationWreath.center.object.point = workspacePosition
 
-#   snapRef: (e) ->
-#     @editor.findSnapRef(e, [@provisionalPoint])
+  pointerUp: (e) ->
+    return unless @provisionalRotationWreath
+    @provisionalRotationWreath = null
 
-
-
-# class EditorTool.RotationWreath
-#   constructor: (@editor) ->
-#     @provisionalPoint = null
-#     @provisionalRotationWreath = null
-
-#   pointerDown: (e) ->
-
-#   pointerMove: (e) ->
-#     if !@provisionalPoint
-#       @provisionalPoint = new Model.Point(new Geo.Point(0, 0))
-#       @editor.contextWreath.objects.push(@provisionalPoint)
-#       @provisionalRotationWreath = new Model.RotationWreath()
-
-#     workspacePosition = @editor.workspacePosition(e)
-#     @provisionalPoint.point = workspacePosition
-
-#   pointerUp: (e) ->
-#     return unless @provisionalPoint
-#     @provisionalPoint = null
-
-#   pointerLeave: (e) ->
-#     return unless @provisionalPoint
-#     @editor.removeObject(@provisionalPoint)
-#     @provisionalPoint = null
+  pointerLeave: (e) ->
+    return unless @provisionalRotationWreath
+    @editor.removeObject(@provisionalRotationWreath)
+    @provisionalRotationWreath = null

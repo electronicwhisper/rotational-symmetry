@@ -168,6 +168,9 @@
         Render.drawPoint(canvas, p1);
         Render.drawPoint(canvas, p2);
         return Render.drawLine(canvas, p1, p2);
+      } else if (toolName === "RotationWreath") {
+        p1 = new Geo.Point(0, 0);
+        return Render.drawRotationWreath(canvas, p1, 12);
       }
     };
 
@@ -481,6 +484,46 @@
     };
 
     return LineSegment;
+
+  })();
+
+  EditorTool.RotationWreath = (function() {
+    function RotationWreath(editor) {
+      this.editor = editor;
+      this.provisionalRotationWreath = null;
+    }
+
+    RotationWreath.prototype.pointerDown = function(e) {};
+
+    RotationWreath.prototype.pointerMove = function(e) {
+      var path, point, pointRef, workspacePosition;
+      if (!this.provisionalRotationWreath) {
+        point = new Model.Point(new Geo.Point(0, 0));
+        path = new Ref.Path([]);
+        pointRef = new Ref(path, point);
+        this.provisionalRotationWreath = new Model.RotationWreath(pointRef, 12);
+        this.editor.contextWreath.objects.push(this.provisionalRotationWreath);
+      }
+      workspacePosition = this.editor.workspacePosition(e);
+      return this.provisionalRotationWreath.center.object.point = workspacePosition;
+    };
+
+    RotationWreath.prototype.pointerUp = function(e) {
+      if (!this.provisionalRotationWreath) {
+        return;
+      }
+      return this.provisionalRotationWreath = null;
+    };
+
+    RotationWreath.prototype.pointerLeave = function(e) {
+      if (!this.provisionalRotationWreath) {
+        return;
+      }
+      this.editor.removeObject(this.provisionalRotationWreath);
+      return this.provisionalRotationWreath = null;
+    };
+
+    return RotationWreath;
 
   })();
 
