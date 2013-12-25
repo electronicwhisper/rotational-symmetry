@@ -1,37 +1,15 @@
 
 
-Point merging
+
+Make movingPointRef in Editor
+  Clean up
+  Introduce coloring opts in Renderer
+  Make config for default opts
 
 Make hover/selected
 
+Move hit testing into Renderer
 
+Move Palette stuff into its own class
 
-
-
-
-
-Merge points together
-  Clean up Line snapping implementation, make points and move snap too
-
-
-
-Cleanup
-  Move Palette stuff into its own class
-  Move tools things into classes
-
-
-
-Basic tools
-  select - move points
-  line - click around
-    if click on point, go with that point
-    if click on space, make a new point at that space
-
-
-
-Layer view
-
-
-Misc
-  Pan and zoom workspace
-  Get an offline version working on ipad
+Pan and zoom workspace

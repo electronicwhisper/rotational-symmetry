@@ -118,6 +118,7 @@
       this.palettePointerDown = __bind(this.palettePointerDown, this);
       this.tool = new EditorTool.Select(this);
       this.contextWreath = null;
+      this.movingPointRef = null;
       this.setupModel();
       this.setupLayerManager();
       this.setupPalette();
@@ -228,11 +229,14 @@
     };
 
     Editor.prototype.canvasPointerMove = function(e) {
+      this.doMove(e);
       this.tool.pointerMove(e);
       return this.refresh();
     };
 
     Editor.prototype.canvasPointerUp = function(e) {
+      this.doMove(e, true);
+      this.endMove();
       this.tool.pointerUp(e);
       return this.refresh();
     };
@@ -240,6 +244,43 @@
     Editor.prototype.canvasPointerLeave = function(e) {
       this.tool.pointerLeave(e);
       return this.refresh();
+    };
+
+    Editor.prototype.startMove = function(e, pointRef) {
+      var path, point;
+      if (!pointRef) {
+        point = new Model.Point(new Geo.Point(0, 0));
+        path = new Ref.Path([]);
+        pointRef = new Ref(path, point);
+      }
+      this.movingPointRef = pointRef;
+      this.doMove(e);
+      return pointRef;
+    };
+
+    Editor.prototype.doMove = function(e, shouldMerge) {
+      var moveToPoint, snapRef;
+      if (shouldMerge == null) {
+        shouldMerge = false;
+      }
+      if (this.movingPointRef) {
+        snapRef = this.findSnapRef(e, [this.movingPointRef.object]);
+        if (snapRef) {
+          if (shouldMerge) {
+            return this.mergePointRefs(snapRef, this.movingPointRef);
+          } else {
+            moveToPoint = snapRef.evaluate();
+            return this.movingPointRef.object.point = this.movingPointRef.path.globalToLocal(moveToPoint);
+          }
+        } else {
+          moveToPoint = this.workspacePosition(e);
+          return this.movingPointRef.object.point = this.movingPointRef.path.globalToLocal(moveToPoint);
+        }
+      }
+    };
+
+    Editor.prototype.endMove = function() {
+      return this.movingPointRef = null;
     };
 
     Editor.prototype.refresh = function() {
@@ -302,6 +343,7 @@
       for (_i = 0, _len = objects.length; _i < _len; _i++) {
         object = objects[_i];
         modelPointRefs = object.points();
+        modelPointRefs = _.without(modelPointRefs, null);
         _results.push((function() {
           var _j, _len1, _results1;
           _results1 = [];
@@ -351,47 +393,21 @@
   EditorTool.Select = (function() {
     function Select(editor) {
       this.editor = editor;
-      this.selectedRef = null;
     }
 
     Select.prototype.pointerDown = function(e) {
       var found;
       found = this.editor.refsNearPointer(e);
       if (found.length > 0) {
-        return this.selectedRef = found[0];
-      } else {
-        return this.selectedRef = null;
+        return this.editor.startMove(e, found[0]);
       }
     };
 
-    Select.prototype.pointerMove = function(e) {
-      var moveToPoint, snapRef;
-      if (!this.selectedRef) {
-        return;
-      }
-      snapRef = this.snapRef(e);
-      if (snapRef) {
-        moveToPoint = snapRef.evaluate();
-      } else {
-        moveToPoint = this.editor.workspacePosition(e);
-      }
-      return this.selectedRef.object.point = this.selectedRef.path.globalToLocal(moveToPoint);
-    };
+    Select.prototype.pointerMove = function(e) {};
 
-    Select.prototype.pointerUp = function(e) {
-      var snapRef;
-      snapRef = this.snapRef(e);
-      if (snapRef) {
-        this.editor.mergePointRefs(snapRef, this.selectedRef);
-      }
-      return this.selectedRef = null;
-    };
+    Select.prototype.pointerUp = function(e) {};
 
     Select.prototype.pointerLeave = function(e) {};
-
-    Select.prototype.snapRef = function(e) {
-      return this.editor.findSnapRef(e, [this.selectedRef.object]);
-    };
 
     return Select;
 
@@ -401,86 +417,35 @@
     function LineSegment(editor) {
       this.editor = editor;
       this.provisionalLine = null;
-      this.previousPointRef = null;
-      this.currentPointRef = null;
     }
-
-    LineSegment.prototype.makeNewCurrentPointRef = function() {
-      var path, point;
-      point = new Model.Point(new Geo.Point(0, 0));
-      path = new Ref.Path([]);
-      return this.currentPointRef = new Ref(path, point);
-    };
-
-    LineSegment.prototype.moveCurrentPointRef = function(e) {
-      var moveToPoint, snapRef;
-      snapRef = this.snapRef(e);
-      if (snapRef) {
-        moveToPoint = snapRef.evaluate();
-      } else {
-        moveToPoint = this.editor.workspacePosition(e);
-      }
-      return this.currentPointRef.object.point = moveToPoint;
-    };
 
     LineSegment.prototype.pointerDown = function(e) {};
 
     LineSegment.prototype.pointerMove = function(e) {
-      var end, start;
-      if (!this.currentPointRef) {
-        this.makeNewCurrentPointRef();
-        if (this.previousPointRef) {
-          start = this.previousPointRef;
-          end = this.currentPointRef;
-        } else {
-          start = this.currentPointRef;
-          end = null;
-        }
-        this.provisionalLine = new Model.Line(start, end);
-        this.editor.contextWreath.objects.push(this.provisionalLine);
+      var pointRef;
+      if (!this.provisionalLine) {
+        pointRef = this.editor.startMove(e);
+        this.provisionalLine = new Model.Line(pointRef, null);
+        return this.editor.contextWreath.objects.push(this.provisionalLine);
       }
-      return this.moveCurrentPointRef(e);
     };
 
     LineSegment.prototype.pointerUp = function(e) {
-      var snapRef;
-      if (!this.currentPointRef) {
-        return;
-      }
-      snapRef = this.snapRef(e);
-      if (this.previousPointRef) {
-        if (snapRef) {
-          this.provisionalLine.end = snapRef;
-          this.currentPointRef = null;
-          this.previousPointRef = null;
-          return this.provisionalLine = null;
+      if (this.provisionalLine) {
+        if (!this.provisionalLine.end) {
+          return this.provisionalLine.end = this.editor.startMove(e);
         } else {
-          this.previousPointRef = this.currentPointRef;
-          this.currentPointRef = null;
-          return this.provisionalLine = null;
+          this.provisionalLine = null;
+          return this.editor.movingPointRef = null;
         }
-      } else {
-        this.previousPointRef = this.currentPointRef;
-        this.makeNewCurrentPointRef();
-        this.moveCurrentPointRef(e);
-        this.provisionalLine.start = snapRef != null ? snapRef : this.previousPointRef;
-        return this.provisionalLine.end = this.currentPointRef;
       }
     };
 
     LineSegment.prototype.pointerLeave = function(e) {
-      if (!this.currentPointRef) {
-        return;
-      }
-      if (this.provisionalLine) {
+      if (this.provisionalLine && !this.provisionalLine.end) {
         this.editor.removeObject(this.provisionalLine);
+        return this.provisionalLine = null;
       }
-      this.currentPointRef = null;
-      return this.provisionalLine = null;
-    };
-
-    LineSegment.prototype.snapRef = function(e) {
-      return this.editor.findSnapRef(e, [this.currentPointRef.object]);
     };
 
     return LineSegment;
@@ -496,11 +461,9 @@
     RotationWreath.prototype.pointerDown = function(e) {};
 
     RotationWreath.prototype.pointerMove = function(e) {
-      var path, point, pointRef, workspacePosition;
+      var pointRef, workspacePosition;
       if (!this.provisionalRotationWreath) {
-        point = new Model.Point(new Geo.Point(0, 0));
-        path = new Ref.Path([]);
-        pointRef = new Ref(path, point);
+        pointRef = this.editor.startMove(e);
         this.provisionalRotationWreath = new Model.RotationWreath(pointRef, 12);
         this.editor.contextWreath.objects.push(this.provisionalRotationWreath);
       }

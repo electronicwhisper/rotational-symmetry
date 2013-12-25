@@ -3,106 +3,45 @@ EditorTool = {}
 
 class EditorTool.Select
   constructor: (@editor) ->
-    @selectedRef = null
 
   pointerDown: (e) ->
     found = @editor.refsNearPointer(e)
     if found.length > 0
-      @selectedRef = found[0]
-    else
-      @selectedRef = null
+      @editor.startMove(e, found[0])
 
   pointerMove: (e) ->
-    return unless @selectedRef
-
-    snapRef = @snapRef(e)
-    if snapRef
-      moveToPoint = snapRef.evaluate()
-    else
-      moveToPoint = @editor.workspacePosition(e)
-    @selectedRef.object.point = @selectedRef.path.globalToLocal(moveToPoint)
-
-    # workspacePosition = @editor.workspacePosition(e)
-    # localPoint = @selectedRef.path.globalToLocal(workspacePosition)
-    # @selectedRef.object.point = localPoint
 
   pointerUp: (e) ->
-    snapRef = @snapRef(e)
-    if snapRef
-      @editor.mergePointRefs(snapRef, @selectedRef)
-    @selectedRef = null
 
   pointerLeave: (e) ->
 
-  snapRef: (e) ->
-    @editor.findSnapRef(e, [@selectedRef.object])
 
 
 
 class EditorTool.LineSegment
   constructor: (@editor) ->
     @provisionalLine = null
-    @previousPointRef = null
-    @currentPointRef = null
-
-  makeNewCurrentPointRef: ->
-    point = new Model.Point(new Geo.Point(0, 0))
-    path = new Ref.Path([])
-    @currentPointRef = new Ref(path, point)
-
-  moveCurrentPointRef: (e) ->
-    snapRef = @snapRef(e)
-    if snapRef
-      moveToPoint = snapRef.evaluate()
-    else
-      moveToPoint = @editor.workspacePosition(e)
-    @currentPointRef.object.point = moveToPoint
 
   pointerDown: (e) ->
 
   pointerMove: (e) ->
-    if !@currentPointRef
-      @makeNewCurrentPointRef()
-      if @previousPointRef
-        start = @previousPointRef
-        end = @currentPointRef
-      else
-        start = @currentPointRef
-        end = null
-      @provisionalLine = new Model.Line(start, end)
+    if !@provisionalLine
+      pointRef = @editor.startMove(e)
+      @provisionalLine = new Model.Line(pointRef, null)
       @editor.contextWreath.objects.push(@provisionalLine)
 
-    @moveCurrentPointRef(e)
-
   pointerUp: (e) ->
-    return unless @currentPointRef
-    snapRef = @snapRef(e)
-
-    if @previousPointRef
-      if snapRef
-        @provisionalLine.end = snapRef
-        @currentPointRef = null
-        @previousPointRef = null
-        @provisionalLine = null
+    if @provisionalLine
+      if !@provisionalLine.end
+        @provisionalLine.end = @editor.startMove(e)
       else
-        @previousPointRef = @currentPointRef
-        @currentPointRef = null
         @provisionalLine = null
-    else
-      @previousPointRef = @currentPointRef
-      @makeNewCurrentPointRef()
-      @moveCurrentPointRef(e)
-      @provisionalLine.start = snapRef ? @previousPointRef
-      @provisionalLine.end = @currentPointRef
+        @editor.movingPointRef = null
 
   pointerLeave: (e) ->
-    return unless @currentPointRef
-    @editor.removeObject(@provisionalLine) if @provisionalLine
-    @currentPointRef = null
-    @provisionalLine = null
-
-  snapRef: (e) ->
-    @editor.findSnapRef(e, [@currentPointRef.object])
+    if @provisionalLine && !@provisionalLine.end
+      @editor.removeObject(@provisionalLine)
+      @provisionalLine = null
 
 
 
@@ -114,10 +53,7 @@ class EditorTool.RotationWreath
 
   pointerMove: (e) ->
     if !@provisionalRotationWreath
-      point = new Model.Point(new Geo.Point(0, 0))
-      path = new Ref.Path([])
-      pointRef = new Ref(path, point)
-
+      pointRef = @editor.startMove(e)
       @provisionalRotationWreath = new Model.RotationWreath(pointRef, 12)
       @editor.contextWreath.objects.push(@provisionalRotationWreath)
 

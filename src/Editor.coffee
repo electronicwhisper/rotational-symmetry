@@ -2,6 +2,7 @@ class Editor
   constructor: ->
     @tool = new EditorTool.Select(this)
     @contextWreath = null
+    @movingPointRef = null
 
     @setupModel()
     @setupLayerManager()
@@ -109,16 +110,47 @@ class Editor
     @refresh()
 
   canvasPointerMove: (e) =>
+    @doMove(e)
+
     @tool.pointerMove(e)
     @refresh()
 
   canvasPointerUp: (e) =>
+    @doMove(e, true)
+    @endMove()
+
     @tool.pointerUp(e)
     @refresh()
 
   canvasPointerLeave: (e) =>
     @tool.pointerLeave(e)
     @refresh()
+
+
+  startMove: (e, pointRef) ->
+    if !pointRef
+      point = new Model.Point(new Geo.Point(0, 0))
+      path = new Ref.Path([])
+      pointRef = new Ref(path, point)
+    @movingPointRef = pointRef
+    @doMove(e)
+    return pointRef
+
+  doMove: (e, shouldMerge=false) ->
+    if @movingPointRef
+      snapRef = @findSnapRef(e, [@movingPointRef.object])
+      if snapRef
+        if shouldMerge
+          @mergePointRefs(snapRef, @movingPointRef)
+        else
+          moveToPoint = snapRef.evaluate()
+          @movingPointRef.object.point = @movingPointRef.path.globalToLocal(moveToPoint)
+      else
+        moveToPoint = @workspacePosition(e)
+        @movingPointRef.object.point = @movingPointRef.path.globalToLocal(moveToPoint)
+
+  endMove: ->
+    @movingPointRef = null
 
 
   refresh: ->
@@ -178,6 +210,7 @@ class Editor
 
     for object in objects
       modelPointRefs = object.points()
+      modelPointRefs = _.without(modelPointRefs, null)
       for modelPointRef in modelPointRefs
         if modelPointRef.object == objectToMerge
           # TODO: This is a mutation of modelPointRef, but cleaner would be to
