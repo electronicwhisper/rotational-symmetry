@@ -36,12 +36,39 @@ class EditorTool.LineSegment
         @provisionalLine.end = @editor.startMove(e)
       else
         @provisionalLine = null
-        @editor.movingPointRef = null
+        @editor.endMove()
 
   pointerLeave: (e) ->
     if @provisionalLine && !@provisionalLine.end
       @editor.removeObject(@provisionalLine)
       @provisionalLine = null
+
+
+
+class EditorTool.Circle
+  constructor: (@editor) ->
+    @provisionalCircle = null
+
+  pointerDown: (e) ->
+
+  pointerMove: (e) ->
+    if !@provisionalCircle
+      pointRef = @editor.startMove(e)
+      @provisionalCircle = new Model.Circle(pointRef, null)
+      @editor.contextWreath.objects.push(@provisionalCircle)
+
+  pointerUp: (e) ->
+    if @provisionalCircle
+      if !@provisionalCircle.radiusPoint
+        @provisionalCircle.radiusPoint = @editor.startMove(e)
+      else
+        @provisionalCircle = null
+        @editor.endMove()
+
+  pointerLeave: (e) ->
+    if @provisionalCircle && !@provisionalCircle.radiusPoint
+      @editor.removeObject(@provisionalCircle)
+      @provisionalCircle = null
 
 
 

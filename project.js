@@ -159,7 +159,7 @@
     };
 
     Editor.prototype.drawPaletteTool = function(toolName, canvasEl) {
-      var canvas, p1, p2;
+      var canvas, center, p1, p2, radiusPoint;
       canvas = new Canvas(canvasEl);
       if (toolName === "Select") {
 
@@ -169,6 +169,12 @@
         Render.drawPoint(canvas, p1);
         Render.drawPoint(canvas, p2);
         return Render.drawLine(canvas, p1, p2);
+      } else if (toolName === "Circle") {
+        center = new Geo.Point(0, 0);
+        radiusPoint = new Geo.Point(15, 0);
+        Render.drawPoint(canvas, center);
+        Render.drawPoint(canvas, radiusPoint);
+        return Render.drawCircle(canvas, center, radiusPoint);
       } else if (toolName === "RotationWreath") {
         p1 = new Geo.Point(0, 0);
         return Render.drawRotationWreath(canvas, p1, 12);
@@ -436,7 +442,7 @@
           return this.provisionalLine.end = this.editor.startMove(e);
         } else {
           this.provisionalLine = null;
-          return this.editor.movingPointRef = null;
+          return this.editor.endMove();
         }
       }
     };
@@ -449,6 +455,45 @@
     };
 
     return LineSegment;
+
+  })();
+
+  EditorTool.Circle = (function() {
+    function Circle(editor) {
+      this.editor = editor;
+      this.provisionalCircle = null;
+    }
+
+    Circle.prototype.pointerDown = function(e) {};
+
+    Circle.prototype.pointerMove = function(e) {
+      var pointRef;
+      if (!this.provisionalCircle) {
+        pointRef = this.editor.startMove(e);
+        this.provisionalCircle = new Model.Circle(pointRef, null);
+        return this.editor.contextWreath.objects.push(this.provisionalCircle);
+      }
+    };
+
+    Circle.prototype.pointerUp = function(e) {
+      if (this.provisionalCircle) {
+        if (!this.provisionalCircle.radiusPoint) {
+          return this.provisionalCircle.radiusPoint = this.editor.startMove(e);
+        } else {
+          this.provisionalCircle = null;
+          return this.editor.endMove();
+        }
+      }
+    };
+
+    Circle.prototype.pointerLeave = function(e) {
+      if (this.provisionalCircle && !this.provisionalCircle.radiusPoint) {
+        this.editor.removeObject(this.provisionalCircle);
+        return this.provisionalCircle = null;
+      }
+    };
+
+    return Circle;
 
   })();
 
@@ -634,6 +679,24 @@
     }
 
     return Line;
+
+  })(Model.Base);
+
+  Model.Circle = (function(_super) {
+    __extends(Circle, _super);
+
+    Circle.prototype.name = "Circle";
+
+    Circle.prototype.points = function() {
+      return [this.center, this.radiusPoint];
+    };
+
+    function Circle(center, radiusPoint) {
+      this.center = center;
+      this.radiusPoint = radiusPoint;
+    }
+
+    return Circle;
 
   })(Model.Base);
 
@@ -902,7 +965,7 @@
   Render = {};
 
   Render.render = function(canvas, editor) {
-    var center, end, model, object, point, pointRef, ref, refs, start, _i, _j, _len, _len1, _ref, _results;
+    var center, end, model, object, point, pointRef, radiusPoint, ref, refs, start, _i, _j, _len, _len1, _ref, _results;
     canvas.clear();
     model = editor.model;
     refs = model.refs();
@@ -917,6 +980,12 @@
           start = ref.path.localToGlobal(object.start.evaluate());
           end = ref.path.localToGlobal(object.end.evaluate());
           Render.drawLine(canvas, start, end);
+        }
+      } else if (object instanceof Model.Circle) {
+        if ((object.center != null) && (object.radiusPoint != null)) {
+          center = ref.path.localToGlobal(object.center.evaluate());
+          radiusPoint = ref.path.localToGlobal(object.radiusPoint.evaluate());
+          Render.drawCircle(canvas, center, radiusPoint);
         }
       } else if (object instanceof Model.RotationWreath) {
         center = ref.path.localToGlobal(object.center.evaluate());
@@ -960,6 +1029,29 @@
     ctx.beginPath();
     ctx.moveTo(start.x, start.y);
     ctx.lineTo(end.x, end.y);
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 0.6;
+    ctx.stroke();
+    return ctx.restore();
+  };
+
+  Render.drawCircle = function(canvas, center, radiusPoint, opts) {
+    var ctx, radius;
+    if (opts == null) {
+      opts = {};
+    }
+    center = canvas.workspaceToCanvas(center);
+    radiusPoint = canvas.workspaceToCanvas(radiusPoint);
+    radius = (function() {
+      var dx, dy;
+      dx = center.x - radiusPoint.x;
+      dy = center.y - radiusPoint.y;
+      return Math.sqrt(dx * dx + dy * dy);
+    })();
+    ctx = canvas.ctx;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
     ctx.strokeStyle = "#000";
     ctx.lineWidth = 0.6;
     ctx.stroke();

@@ -29,6 +29,13 @@ class Model.Line extends Model.Base
   constructor: (@start, @end) ->
 
 
+class Model.Circle extends Model.Base
+  name: "Circle"
+  points: -> [@center, @radiusPoint]
+
+  constructor: (@center, @radiusPoint) ->
+
+
 class Model.Wreath extends Model.Base
   name: "Group"
   children: -> @objects

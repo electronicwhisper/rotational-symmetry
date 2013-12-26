@@ -20,6 +20,12 @@ Render.render = (canvas, editor) ->
         end = ref.path.localToGlobal(object.end.evaluate())
         Render.drawLine(canvas, start, end)
 
+    else if object instanceof Model.Circle
+      if object.center? && object.radiusPoint?
+        center = ref.path.localToGlobal(object.center.evaluate())
+        radiusPoint = ref.path.localToGlobal(object.radiusPoint.evaluate())
+        Render.drawCircle(canvas, center, radiusPoint)
+
     else if object instanceof Model.RotationWreath
       center = ref.path.localToGlobal(object.center.evaluate())
       Render.drawRotationWreath(canvas, center, object.n)
@@ -51,6 +57,24 @@ Render.drawLine = (canvas, start, end, opts={}) ->
   ctx.beginPath()
   ctx.moveTo(start.x, start.y)
   ctx.lineTo(end.x, end.y)
+  ctx.strokeStyle = "#000"
+  ctx.lineWidth = 0.6
+  ctx.stroke()
+  ctx.restore()
+
+
+Render.drawCircle = (canvas, center, radiusPoint, opts={}) ->
+  center = canvas.workspaceToCanvas(center)
+  radiusPoint = canvas.workspaceToCanvas(radiusPoint)
+  radius = do ->
+    dx = center.x - radiusPoint.x
+    dy = center.y - radiusPoint.y
+    Math.sqrt(dx*dx + dy*dy)
+  ctx = canvas.ctx
+
+  ctx.save()
+  ctx.beginPath()
+  ctx.arc(center.x, center.y, radius, 0, Math.PI*2)
   ctx.strokeStyle = "#000"
   ctx.lineWidth = 0.6
   ctx.stroke()

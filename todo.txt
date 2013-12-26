@@ -17,7 +17,6 @@ Move Palette stuff into its own class
 Pan and zoom workspace
 
 Build more tools
-  Circle
   Reflection Wreath
   Translation Wreath
 

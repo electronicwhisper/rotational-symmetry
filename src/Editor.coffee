@@ -60,6 +60,13 @@ class Editor
       Render.drawPoint(canvas, p2)
       Render.drawLine(canvas, p1, p2)
 
+    else if toolName == "Circle"
+      center = new Geo.Point(0, 0)
+      radiusPoint = new Geo.Point(15, 0)
+      Render.drawPoint(canvas, center)
+      Render.drawPoint(canvas, radiusPoint)
+      Render.drawCircle(canvas, center, radiusPoint)
+
     else if toolName == "RotationWreath"
       p1 = new Geo.Point(0, 0)
       Render.drawRotationWreath(canvas, p1, 12)
