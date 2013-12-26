@@ -246,6 +246,11 @@
       return this.refresh();
     };
 
+    Editor.prototype.refresh = function() {
+      Render.render(this.canvas, this);
+      return this.layerManager.writeToDOM();
+    };
+
     Editor.prototype.startMove = function(e, pointRef) {
       var path, point;
       if (!pointRef) {
@@ -281,11 +286,6 @@
 
     Editor.prototype.endMove = function() {
       return this.movingPointRef = null;
-    };
-
-    Editor.prototype.refresh = function() {
-      Render.render(this.canvas, this);
-      return this.layerManager.writeToDOM();
     };
 
     Editor.prototype.refsNearPointer = function(e) {
@@ -544,9 +544,9 @@
       var contextEl, contextWreath, model, rootEl;
       this.reset();
       model = this.editor.model;
-      contextWreath = this.editor.contextWreath;
       rootEl = this.objectToEl(model);
       this.layersEl.appendChild(rootEl);
+      contextWreath = this.editor.contextWreath;
       contextEl = this.modelToDom_.get(contextWreath);
       return contextEl.classList.add("context");
     };

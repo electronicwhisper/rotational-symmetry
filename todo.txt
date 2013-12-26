@@ -7,9 +7,19 @@ Make movingPointRef in Editor
   Make config for default opts
 
 Make hover/selected
+  Delete object
+  Show hover/selected object in layer manager
 
 Move hit testing into Renderer
 
 Move Palette stuff into its own class
 
 Pan and zoom workspace
+
+Build more tools
+  Circle
+  Reflection Wreath
+  Translation Wreath
+
+Inspector
+  Change numbers on reflection/translation

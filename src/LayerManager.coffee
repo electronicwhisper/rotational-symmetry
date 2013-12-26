@@ -28,13 +28,19 @@ class LayerManager
     @reset()
 
     model = @editor.model
-    contextWreath = @editor.contextWreath
 
+    # Do basic DOM Output
     rootEl = @objectToEl(model)
     @layersEl.appendChild(rootEl)
 
+    # Annotate important objects
+    contextWreath = @editor.contextWreath
     contextEl = @modelToDom_.get(contextWreath)
     contextEl.classList.add("context")
+
+    # movingPoint = @editor.movingPointRef?.object
+    # if movingPoint
+    #   movingEl = @modelToDom_.get(@editor.movingPointRef?.object)
 
 
   objectToEl: (object) ->

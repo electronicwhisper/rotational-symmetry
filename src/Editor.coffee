@@ -126,6 +126,17 @@ class Editor
     @tool.pointerLeave(e)
     @refresh()
 
+  # TODO: I think it would be good to have canvasPointerEnter also... Or
+  # something to solve how drawing polylines is now awkward.
+
+  refresh: ->
+    Render.render(@canvas, this)
+    @layerManager.writeToDOM()
+
+
+  # ===========================================================================
+  # Moving (via dragging)
+  # ===========================================================================
 
   startMove: (e, pointRef) ->
     if !pointRef
@@ -153,11 +164,9 @@ class Editor
     @movingPointRef = null
 
 
-  refresh: ->
-    Render.render(@canvas, this)
-
-    @layerManager.writeToDOM()
-
+  # ===========================================================================
+  # Helpers (TODO: Many should probably move into the Model)
+  # ===========================================================================
 
   refsNearPointer: (e) ->
     pointerPosition = new Geo.Point(e.clientX, e.clientY)
