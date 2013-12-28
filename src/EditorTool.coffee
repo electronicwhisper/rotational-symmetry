@@ -84,9 +84,6 @@ class EditorTool.RotationWreath
       @provisionalRotationWreath = new Model.RotationWreath(pointRef, 12)
       @editor.contextWreath.objects.push(@provisionalRotationWreath)
 
-    workspacePosition = @editor.workspacePosition(e)
-    @provisionalRotationWreath.center.object.point = workspacePosition
-
   pointerUp: (e) ->
     return unless @provisionalRotationWreath
     @provisionalRotationWreath = null
@@ -95,3 +92,30 @@ class EditorTool.RotationWreath
     return unless @provisionalRotationWreath
     @editor.removeObject(@provisionalRotationWreath)
     @provisionalRotationWreath = null
+
+
+
+class EditorTool.ReflectionWreath
+  constructor: (@editor) ->
+    @provisionalReflectionWreath = null
+
+  pointerDown: (e) ->
+
+  pointerMove: (e) ->
+    if !@provisionalReflectionWreath
+      pointRef = @editor.startMove(e)
+      @provisionalReflectionWreath = new Model.ReflectionWreath(pointRef, null)
+      @editor.contextWreath.objects.push(@provisionalReflectionWreath)
+
+  pointerUp: (e) ->
+    if @provisionalReflectionWreath
+      if !@provisionalReflectionWreath.p2
+        @provisionalReflectionWreath.p2 = @editor.startMove(e)
+      else
+        @provisionalReflectionWreath = null
+        @editor.endMove()
+
+  pointerLeave: (e) ->
+    if @provisionalReflectionWreath && !@provisionalReflectionWreath.p2
+      @editor.removeObject(@provisionalReflectionWreath)
+      @provisionalReflectionWreath = null

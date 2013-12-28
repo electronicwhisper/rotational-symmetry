@@ -1,3 +1,9 @@
+Instead of having objects with null points, have the editor tool place points (at most 2?) and then create the object with the last point?
+
+How does it work for arcs?
+
+
+
 
 
 
@@ -21,4 +27,4 @@ Build more tools
   Translation Wreath
 
 Inspector
-  Change numbers on reflection/translation
+  Change numbers on rotation/translation

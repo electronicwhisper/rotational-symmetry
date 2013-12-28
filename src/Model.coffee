@@ -107,3 +107,23 @@ class Model.RotationWreath extends Model.Wreath
     x = Math.cos(angle) * point.x - Math.sin(angle) * point.y
     y = Math.sin(angle) * point.x + Math.cos(angle) * point.y
     return new Geo.Point(x, y)
+
+
+class Model.ReflectionWreath extends Model.Wreath
+  name: "Reflection Group"
+  points: -> [@p1, @p2]
+
+  constructor: (@p1, @p2) ->
+    super()
+
+  ops: -> [1, -1]
+
+  inverse: (op) ->
+    return op
+
+  perform: (op, point) ->
+    if op == -1
+      return reflectionOnLineForPoint(@p1.evaluate(), @p2.evaluate(), point) ? point
+    else
+      return point
+

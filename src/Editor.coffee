@@ -16,14 +16,7 @@ class Editor
 
   setupModel: ->
     @model = new Model.Wreath()
-    center = new Model.Point(new Geo.Point(0, 0))
-    # @model.objects.push(center)
-
-    centerRef = new Ref(new Ref.Path([{wreath: @model, op: 0}]), center)
-    rotation = new Model.RotationWreath(centerRef, 12)
-    @model.objects.push(rotation)
-
-    @contextWreath = rotation
+    @contextWreath = @model
 
     window.model = @model
 
@@ -70,6 +63,13 @@ class Editor
     else if toolName == "RotationWreath"
       p1 = new Geo.Point(0, 0)
       Render.drawRotationWreath(canvas, p1, 12)
+
+    else if toolName == "ReflectionWreath"
+      p1 = new Geo.Point(-10, -10)
+      p2 = new Geo.Point(10, 10)
+      Render.drawPoint(canvas, p1)
+      Render.drawPoint(canvas, p2)
+      Render.drawReflectionWreath(canvas, p1, p2)
 
   palettePointerDown: (e) =>
     toolEl = e.target.closest(".palette-tool")

@@ -30,6 +30,12 @@ Render.render = (canvas, editor) ->
       center = ref.path.localToGlobal(object.center.evaluate())
       Render.drawRotationWreath(canvas, center, object.n)
 
+    else if object instanceof Model.ReflectionWreath
+      if object.p1? && object.p2?
+        p1 = ref.path.localToGlobal(object.p1.evaluate())
+        p2 = ref.path.localToGlobal(object.p2.evaluate())
+        Render.drawReflectionWreath(canvas, p1, p2)
+
   for pointRef in model.pointRefs()
     point = pointRef.evaluate()
     Render.drawPoint(canvas, point)
@@ -98,3 +104,33 @@ Render.drawRotationWreath = (canvas, center, n, opts={}) ->
   ctx.fillText(n, center.x + 4, center.y - 4)
 
   ctx.restore()
+
+
+Render.drawReflectionWreath = (canvas, p1, p2, opts={}) ->
+  p1 = canvas.workspaceToCanvas(p1)
+  p2 = canvas.workspaceToCanvas(p2)
+  ctx = canvas.ctx
+
+  ctx.save()
+
+  nw = new Geo.Point(0, 0)
+  ne = new Geo.Point(canvas.width(), 0)
+  sw = new Geo.Point(0, canvas.height())
+  se = new Geo.Point(canvas.width(), canvas.height())
+
+  start = intersectionPointForLines(p1, p2, nw, ne) ? intersectionPointForLines(p1, p2, nw, sw)
+  end = intersectionPointForLines(p1, p2, sw, se) ? intersectionPointForLines(p1, p2, ne, se)
+
+  return unless start? && end?
+
+  ctx.beginPath()
+  ctx.moveTo(start.x, start.y)
+  ctx.lineTo(end.x, end.y)
+
+  ctx.strokeStyle = "purple"
+  ctx.lineWidth = 0.6
+  ctx.setLineDash([5])
+  ctx.stroke()
+
+  ctx.restore()
+
