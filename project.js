@@ -225,26 +225,38 @@
     };
 
     Editor.prototype.canvasPointerDown = function(e) {
+      var _base;
       e.preventDefault();
-      this.tool.pointerDown(e);
+      if (typeof (_base = this.tool).pointerDown === "function") {
+        _base.pointerDown(e);
+      }
       return this.refresh();
     };
 
     Editor.prototype.canvasPointerMove = function(e) {
+      var _base;
       this.doMove(e);
-      this.tool.pointerMove(e);
+      if (typeof (_base = this.tool).pointerMove === "function") {
+        _base.pointerMove(e);
+      }
       return this.refresh();
     };
 
     Editor.prototype.canvasPointerUp = function(e) {
+      var _base;
       this.doMove(e, true);
       this.endMove();
-      this.tool.pointerUp(e);
+      if (typeof (_base = this.tool).pointerUp === "function") {
+        _base.pointerUp(e);
+      }
       return this.refresh();
     };
 
     Editor.prototype.canvasPointerLeave = function(e) {
-      this.tool.pointerLeave(e);
+      var _base;
+      if (typeof (_base = this.tool).pointerLeave === "function") {
+        _base.pointerLeave(e);
+      }
       return this.refresh();
     };
 
@@ -405,12 +417,6 @@
       }
     };
 
-    Select.prototype.pointerMove = function(e) {};
-
-    Select.prototype.pointerUp = function(e) {};
-
-    Select.prototype.pointerLeave = function(e) {};
-
     return Select;
 
   })();
@@ -420,8 +426,6 @@
       this.editor = editor;
       this.provisionalLine = null;
     }
-
-    LineSegment.prototype.pointerDown = function(e) {};
 
     LineSegment.prototype.pointerMove = function(e) {
       var pointRef;
@@ -460,8 +464,6 @@
       this.provisionalCircle = null;
     }
 
-    Circle.prototype.pointerDown = function(e) {};
-
     Circle.prototype.pointerMove = function(e) {
       var pointRef;
       if (!this.provisionalCircle) {
@@ -499,8 +501,6 @@
       this.provisionalRotationWreath = null;
     }
 
-    RotationWreath.prototype.pointerDown = function(e) {};
-
     RotationWreath.prototype.pointerMove = function(e) {
       var pointRef;
       if (!this.provisionalRotationWreath) {
@@ -534,8 +534,6 @@
       this.editor = editor;
       this.provisionalReflectionWreath = null;
     }
-
-    ReflectionWreath.prototype.pointerDown = function(e) {};
 
     ReflectionWreath.prototype.pointerMove = function(e) {
       var pointRef;
@@ -1050,11 +1048,14 @@
 
     Path.prototype.isEqual = function(otherPath) {
       var i, otherStep, step, _i, _len, _ref;
+      if (this.steps.length !== otherPath.steps.length) {
+        return false;
+      }
       _ref = this.steps;
       for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
         step = _ref[i];
         otherStep = otherPath.steps[i];
-        if (!(otherStep && step.wreath === otherStep.wreath && step.op === otherStep.op)) {
+        if (!(step.wreath === otherStep.wreath && step.op === otherStep.op)) {
           return false;
         }
       }
@@ -1091,7 +1092,7 @@
   Render = {};
 
   Render.render = function(canvas, editor) {
-    var center, end, model, object, p1, p2, point, pointRef, radiusPoint, ref, refs, start, _i, _j, _len, _len1, _ref, _results;
+    var center, end, model, object, opts, p1, p2, point, pointRef, radiusPoint, ref, refs, start, _i, _j, _len, _len1, _ref, _ref1, _results;
     canvas.clear();
     model = editor.model;
     refs = model.refs();
@@ -1128,14 +1129,18 @@
     _results = [];
     for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
       pointRef = _ref[_j];
+      opts = {};
+      if (((_ref1 = editor.movingPointRef) != null ? _ref1.object : void 0) === pointRef.object) {
+        opts.color = "#f00";
+      }
       point = pointRef.evaluate();
-      _results.push(Render.drawPoint(canvas, point));
+      _results.push(Render.drawPoint(canvas, point, opts));
     }
     return _results;
   };
 
   Render.drawPoint = function(canvas, point, opts) {
-    var ctx;
+    var ctx, _ref;
     if (opts == null) {
       opts = {};
     }
@@ -1144,13 +1149,13 @@
     ctx.save();
     ctx.beginPath();
     ctx.arc(point.x, point.y, 2.5, 0, Math.PI * 2);
-    ctx.fillStyle = "#333";
+    ctx.fillStyle = (_ref = opts.color) != null ? _ref : "#333";
     ctx.fill();
     return ctx.restore();
   };
 
   Render.drawLine = function(canvas, start, end, opts) {
-    var ctx;
+    var ctx, _ref;
     if (opts == null) {
       opts = {};
     }
@@ -1161,14 +1166,14 @@
     ctx.beginPath();
     ctx.moveTo(start.x, start.y);
     ctx.lineTo(end.x, end.y);
-    ctx.strokeStyle = "#000";
+    ctx.strokeStyle = (_ref = opts.color) != null ? _ref : "#000";
     ctx.lineWidth = 0.6;
     ctx.stroke();
     return ctx.restore();
   };
 
   Render.drawCircle = function(canvas, center, radiusPoint, opts) {
-    var ctx, radius;
+    var ctx, radius, _ref;
     if (opts == null) {
       opts = {};
     }
@@ -1184,20 +1189,20 @@
     ctx.save();
     ctx.beginPath();
     ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
-    ctx.strokeStyle = "#000";
+    ctx.strokeStyle = (_ref = opts.color) != null ? _ref : "#000";
     ctx.lineWidth = 0.6;
     ctx.stroke();
     return ctx.restore();
   };
 
   Render.drawRotationWreath = function(canvas, center, n, opts) {
-    var color, ctx;
+    var color, ctx, _ref;
     if (opts == null) {
       opts = {};
     }
     center = canvas.workspaceToCanvas(center);
     ctx = canvas.ctx;
-    color = "purple";
+    color = (_ref = opts.color) != null ? _ref : "purple";
     ctx.save();
     ctx.beginPath();
     ctx.arc(center.x, center.y, 2.5, 0, Math.PI * 2);
@@ -1209,7 +1214,7 @@
   };
 
   Render.drawReflectionWreath = function(canvas, p1, p2, opts) {
-    var ctx, end, ne, nw, se, start, sw, _ref, _ref1;
+    var ctx, end, ne, nw, se, start, sw, _ref, _ref1, _ref2;
     if (opts == null) {
       opts = {};
     }
@@ -1229,7 +1234,7 @@
     ctx.beginPath();
     ctx.moveTo(start.x, start.y);
     ctx.lineTo(end.x, end.y);
-    ctx.strokeStyle = "purple";
+    ctx.strokeStyle = (_ref2 = opts.color) != null ? _ref2 : "purple";
     ctx.lineWidth = 0.6;
     ctx.setLineDash([5]);
     ctx.stroke();

@@ -9,20 +9,10 @@ class EditorTool.Select
     if found.length > 0
       @editor.startMove(e, found[0])
 
-  pointerMove: (e) ->
-
-  pointerUp: (e) ->
-
-  pointerLeave: (e) ->
-
-
-
 
 class EditorTool.LineSegment
   constructor: (@editor) ->
     @provisionalLine = null
-
-  pointerDown: (e) ->
 
   pointerMove: (e) ->
     if !@provisionalLine
@@ -49,8 +39,6 @@ class EditorTool.Circle
   constructor: (@editor) ->
     @provisionalCircle = null
 
-  pointerDown: (e) ->
-
   pointerMove: (e) ->
     if !@provisionalCircle
       pointRef = @editor.startMove(e)
@@ -76,8 +64,6 @@ class EditorTool.RotationWreath
   constructor: (@editor) ->
     @provisionalRotationWreath = null
 
-  pointerDown: (e) ->
-
   pointerMove: (e) ->
     if !@provisionalRotationWreath
       pointRef = @editor.startMove(e)
@@ -98,8 +84,6 @@ class EditorTool.RotationWreath
 class EditorTool.ReflectionWreath
   constructor: (@editor) ->
     @provisionalReflectionWreath = null
-
-  pointerDown: (e) ->
 
   pointerMove: (e) ->
     if !@provisionalReflectionWreath

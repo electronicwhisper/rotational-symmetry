@@ -56,9 +56,10 @@ class Ref.Path
     return new Ref.Path(steps)
 
   isEqual: (otherPath) ->
+    return false if @steps.length != otherPath.steps.length
     for step, i in @steps
       otherStep = otherPath.steps[i]
-      unless otherStep && step.wreath == otherStep.wreath && step.op == otherStep.op
+      unless step.wreath == otherStep.wreath && step.op == otherStep.op
         return false
     return true
 

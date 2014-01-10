@@ -113,24 +113,24 @@ class Editor
 
   canvasPointerDown: (e) =>
     e.preventDefault()
-    @tool.pointerDown(e)
+    @tool.pointerDown?(e)
     @refresh()
 
   canvasPointerMove: (e) =>
     @doMove(e)
 
-    @tool.pointerMove(e)
+    @tool.pointerMove?(e)
     @refresh()
 
   canvasPointerUp: (e) =>
     @doMove(e, true)
     @endMove()
 
-    @tool.pointerUp(e)
+    @tool.pointerUp?(e)
     @refresh()
 
   canvasPointerLeave: (e) =>
-    @tool.pointerLeave(e)
+    @tool.pointerLeave?(e)
     @refresh()
 
   # TODO: I think it would be good to have canvasPointerEnter also... Or

@@ -37,8 +37,11 @@ Render.render = (canvas, editor) ->
         Render.drawReflectionWreath(canvas, p1, p2)
 
   for pointRef in model.pointRefs()
+    opts = {}
+    if editor.movingPointRef?.object == pointRef.object
+      opts.color = "#f00"
     point = pointRef.evaluate()
-    Render.drawPoint(canvas, point)
+    Render.drawPoint(canvas, point, opts)
 
 
 
@@ -49,7 +52,7 @@ Render.drawPoint = (canvas, point, opts={}) ->
   ctx.save()
   ctx.beginPath()
   ctx.arc(point.x, point.y, 2.5, 0, Math.PI*2)
-  ctx.fillStyle = "#333"
+  ctx.fillStyle = opts.color ? "#333"
   ctx.fill()
   ctx.restore()
 
@@ -63,7 +66,7 @@ Render.drawLine = (canvas, start, end, opts={}) ->
   ctx.beginPath()
   ctx.moveTo(start.x, start.y)
   ctx.lineTo(end.x, end.y)
-  ctx.strokeStyle = "#000"
+  ctx.strokeStyle = opts.color ? "#000"
   ctx.lineWidth = 0.6
   ctx.stroke()
   ctx.restore()
@@ -81,7 +84,7 @@ Render.drawCircle = (canvas, center, radiusPoint, opts={}) ->
   ctx.save()
   ctx.beginPath()
   ctx.arc(center.x, center.y, radius, 0, Math.PI*2)
-  ctx.strokeStyle = "#000"
+  ctx.strokeStyle = opts.color ? "#000"
   ctx.lineWidth = 0.6
   ctx.stroke()
   ctx.restore()
@@ -91,7 +94,7 @@ Render.drawRotationWreath = (canvas, center, n, opts={}) ->
   center = canvas.workspaceToCanvas(center)
   ctx = canvas.ctx
 
-  color = "purple"
+  color = opts.color ? "purple"
 
   ctx.save()
 
@@ -127,7 +130,7 @@ Render.drawReflectionWreath = (canvas, p1, p2, opts={}) ->
   ctx.moveTo(start.x, start.y)
   ctx.lineTo(end.x, end.y)
 
-  ctx.strokeStyle = "purple"
+  ctx.strokeStyle = opts.color ? "purple"
   ctx.lineWidth = 0.6
   ctx.setLineDash([5])
   ctx.stroke()

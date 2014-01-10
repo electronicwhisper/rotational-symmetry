@@ -5,12 +5,13 @@ How does it work for arcs?
 
 
 
+Clean up "fake merging", i.e. the snap while moving a point
+  right now two points are drawn, this messes up coloring
 
 
-Make movingPointRef in Editor
-  Clean up
-  Introduce coloring opts in Renderer
-  Make config for default opts
+
+
+Make config for default opts
 
 Make hover/selected
   Delete object
